@@ -2,13 +2,16 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useState, useRef } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Input, Textarea } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { useAddClip } from '@/hooks/useClips';
 import { useUIStore } from '@/stores/ui.store';
-import { CATEGORIES, HOOK_STYLES, VISUAL_STYLES, PACING_OPTIONS, LIGHTING_OPTIONS, EMOTIONAL_TONES } from '@/lib/constants';
+import { uploadClipMedia } from '@/lib/supabase/storage';
+import { CATEGORIES, HOOK_STYLES, VISUAL_STYLES, PACING_OPTIONS, LIGHTING_OPTIONS } from '@/lib/constants';
+import { ImagePlus, X } from 'lucide-react';
 
 const schema = z.object({
   clip_name:    z.string().min(1, 'Required'),
@@ -40,6 +43,10 @@ export function AddClipModal() {
   const open        = useUIStore((s) => s.addClipOpen);
   const setOpen     = useUIStore((s) => s.setAddClipOpen);
   const addClip     = useAddClip();
+  const [preview, setPreview]       = useState<string | null>(null);
+  const [mediaFile, setMediaFile]   = useState<File | null>(null);
+  const [uploading, setUploading]   = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,15 +58,71 @@ export function AddClipModal() {
     },
   });
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setMediaFile(file);
+    setPreview(URL.createObjectURL(file));
+  };
+
   const onSubmit = async (data: FormData) => {
-    await addClip.mutateAsync(data as any);
-    reset();
-    setOpen(false);
+    setUploading(true);
+    try {
+      let thumbnail_url: string | undefined;
+      if (mediaFile) {
+        thumbnail_url = await uploadClipMedia(mediaFile);
+      }
+      await addClip.mutateAsync({ ...data, thumbnail_url } as any);
+      reset();
+      setPreview(null);
+      setMediaFile(null);
+      setOpen(false);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
     <Modal open={open} onClose={() => setOpen(false)} title="Add Clip" width="max-w-2xl">
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+
+        {/* Thumbnail Upload */}
+        <div>
+          <div className="font-mono text-[9px] tracking-[2px] uppercase mb-2" style={{ color: 'var(--text-3)' }}>
+            Thumbnail / Cover Photo
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*,video/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          {preview ? (
+            <div className="relative w-full h-36 rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+              <img src={preview} alt="preview" className="w-full h-full object-cover" />
+              <button
+                type="button"
+                onClick={() => { setPreview(null); setMediaFile(null); }}
+                className="absolute top-2 right-2 p-1 rounded-full"
+                style={{ background: 'rgba(0,0,0,0.6)', color: 'white' }}
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="w-full h-24 rounded-lg flex flex-col items-center justify-center gap-2 transition-all"
+              style={{ border: '1px dashed var(--border-2)', color: 'var(--text-3)' }}
+            >
+              <ImagePlus size={20} />
+              <span className="font-mono text-[10px]">Tap to add from Photo Library</span>
+            </button>
+          )}
+        </div>
 
         {/* Basic Info */}
         <div className="grid grid-cols-2 gap-4">
@@ -135,7 +198,9 @@ export function AddClipModal() {
         {/* Actions */}
         <div className="flex gap-3 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
           <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button type="submit" loading={addClip.isPending} className="ml-auto">Save Clip</Button>
+          <Button type="submit" loading={addClip.isPending || uploading} className="ml-auto">
+            {uploading ? 'Uploading...' : 'Save Clip'}
+          </Button>
         </div>
       </form>
     </Modal>

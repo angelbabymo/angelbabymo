@@ -55,7 +55,7 @@ export default function PerformancePage() {
     <div className="flex flex-col gap-6 animate-[fadeUp_0.3s_ease_both]">
 
       {/* Summary stats */}
-      <div className="grid grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
         <AttributeCard label="Total Views"  value={formatNumber(totalViews)} />
         <AttributeCard label="Total Saves"  value={formatNumber(totalSaves)}  color="var(--red)" />
         <AttributeCard label="Total Shares" value={formatNumber(totalShares)} color="var(--cyan)" />

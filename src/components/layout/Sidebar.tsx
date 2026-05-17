@@ -17,7 +17,7 @@ export function Sidebar() {
   return (
     <aside
       style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}
-      className="w-[220px] shrink-0 flex flex-col h-screen sticky top-0"
+      className="w-[220px] shrink-0 hidden md:flex flex-col h-screen sticky top-0"
     >
       {/* Logo */}
       <div style={{ borderBottom: '1px solid var(--border)' }} className="px-5 py-6">

@@ -41,7 +41,7 @@ export default function DatabasePage() {
 
       {/* Summary stats */}
       {clips.length > 0 && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 sm:grid-cols-3 gap-3 md:gap-4">
           <StatCard label="Total Views"    value={formatNumber(totalViews)} color="var(--text)" />
           <StatCard label="Total Saves"    value={formatNumber(totalSaves)} color="var(--red)" />
           <StatCard label="Avg Watch Time" value={`${avgWatch}%`}          color="var(--cyan)" />
