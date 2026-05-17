@@ -1,34 +1,45 @@
 'use client';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Zap, Mail, CheckCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Zap, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
+type Mode = 'signin' | 'signup';
+
 export default function LoginPage() {
-  const [email, setEmail]   = useState('');
-  const [sent, setSent]     = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]   = useState('');
+  const router   = useRouter();
+  const [mode, setMode]         = useState<Mode>('signin');
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw]     = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
     setLoading(true);
     setError('');
 
     try {
       const supabase = createClient();
-      const { error: err } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-      if (err) throw err;
-      setSent(true);
+
+      if (mode === 'signup') {
+        const { error: err } = await supabase.auth.signUp({ email, password });
+        if (err) throw err;
+        // After signup, sign in immediately
+        const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInErr) throw signInErr;
+      } else {
+        const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+        if (err) throw err;
+      }
+
+      router.push('/database');
+      router.refresh();
     } catch (err: any) {
-      setError(err.message ?? 'Failed to send magic link');
+      setError(err.message ?? 'Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -39,7 +50,7 @@ export default function LoginPage() {
       className="min-h-screen flex items-center justify-center p-4"
       style={{ background: 'var(--bg)' }}
     >
-      {/* Subtle grid bg */}
+      {/* Grid background */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -68,58 +79,66 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="card p-8">
-          {sent ? (
-            <div className="flex flex-col items-center gap-4 text-center py-4">
-              <CheckCircle size={32} style={{ color: 'var(--green)' }} />
-              <div>
-                <h2 className="font-display tracking-widest text-lg" style={{ color: 'var(--text)' }}>
-                  LINK SENT
-                </h2>
-                <p className="text-[13px] mt-2" style={{ color: 'var(--text-2)' }}>
-                  Check <strong>{email}</strong> for your magic link.
-                </p>
-                <p className="text-[12px] mt-1" style={{ color: 'var(--text-3)' }}>
-                  No password needed — just click the link.
-                </p>
-              </div>
-              <button
-                onClick={() => { setSent(false); setEmail(''); }}
-                className="font-mono text-[11px]"
-                style={{ color: 'var(--text-3)' }}
-              >
-                Use a different email
-              </button>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <div>
+              <h2 className="font-display tracking-widest text-lg" style={{ color: 'var(--text)' }}>
+                {mode === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT'}
+              </h2>
+              <p className="text-[12px] mt-1" style={{ color: 'var(--text-3)' }}>
+                {mode === 'signin' ? 'Enter your email and password.' : 'Set up your private access.'}
+              </p>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-              <div>
-                <h2 className="font-display tracking-widest text-lg" style={{ color: 'var(--text)' }}>
-                  SIGN IN
-                </h2>
-                <p className="text-[12px] mt-1" style={{ color: 'var(--text-3)' }}>
-                  Enter your email to receive a magic link.
-                </p>
+
+            <Input
+              type="email"
+              label="Email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[12px] font-medium" style={{ color: 'var(--text-2)' }}>Password</label>
+              <div className="relative">
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                  className="w-full px-3 py-2 pr-10 text-[13px] rounded-lg outline-none focus:border-[var(--border-2)] placeholder:text-[var(--text-3)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  style={{ color: 'var(--text-3)' }}
+                >
+                  {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
               </div>
+            </div>
 
-              <Input
-                type="email"
-                label="Email address"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+            {error && (
+              <p className="text-[12px]" style={{ color: 'var(--red)' }}>{error}</p>
+            )}
 
-              {error && (
-                <p className="text-[12px]" style={{ color: 'var(--red)' }}>{error}</p>
-              )}
+            <Button type="submit" loading={loading} size="lg" className="w-full justify-center">
+              {mode === 'signin' ? 'Sign In' : 'Create Account'}
+            </Button>
 
-              <Button type="submit" loading={loading} size="lg" className="w-full justify-center">
-                <Mail size={14} />
-                Send Magic Link
-              </Button>
-            </form>
-          )}
+            <button
+              type="button"
+              onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); }}
+              className="text-[12px] text-center"
+              style={{ color: 'var(--text-3)' }}
+            >
+              {mode === 'signin' ? "Don't have an account? Create one" : 'Already have an account? Sign in'}
+            </button>
+          </form>
         </div>
 
         <p className="text-center font-mono text-[10px] mt-6" style={{ color: 'var(--text-3)' }}>
