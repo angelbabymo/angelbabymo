@@ -1,0 +1,143 @@
+'use client';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Modal } from '@/components/ui/Modal';
+import { Input, Textarea } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Button } from '@/components/ui/Button';
+import { useAddClip } from '@/hooks/useClips';
+import { useUIStore } from '@/stores/ui.store';
+import { CATEGORIES, HOOK_STYLES, VISUAL_STYLES, PACING_OPTIONS, LIGHTING_OPTIONS, EMOTIONAL_TONES } from '@/lib/constants';
+
+const schema = z.object({
+  clip_name:    z.string().min(1, 'Required'),
+  category:     z.string().min(1, 'Required'),
+  post_date:    z.string().optional(),
+  views:        z.coerce.number().min(0),
+  saves:        z.coerce.number().min(0),
+  shares:       z.coerce.number().min(0),
+  watch_time_pct: z.coerce.number().min(0).max(100),
+  profile_visits: z.coerce.number().min(0),
+  affiliate_clicks: z.coerce.number().min(0),
+  comments:     z.coerce.number().min(0),
+  reposts:      z.coerce.number().min(0),
+  followers_gained: z.coerce.number().min(0),
+  hook:         z.string().optional(),
+  caption:      z.string().optional(),
+  sound_used:   z.string().optional(),
+  hook_style:   z.string().optional(),
+  visual_style: z.string().optional(),
+  pacing:       z.string().optional(),
+  lighting:     z.string().optional(),
+  emotional_tone: z.string().optional(),
+  affiliate_notes: z.string().optional(),
+});
+
+type FormData = z.infer<typeof schema>;
+
+export function AddClipModal() {
+  const open        = useUIStore((s) => s.addClipOpen);
+  const setOpen     = useUIStore((s) => s.setAddClipOpen);
+  const addClip     = useAddClip();
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(schema) as any,
+    defaultValues: {
+      views: 0, saves: 0, shares: 0, watch_time_pct: 0,
+      profile_visits: 0, affiliate_clicks: 0, comments: 0,
+      reposts: 0, followers_gained: 0,
+    },
+  });
+
+  const onSubmit = async (data: FormData) => {
+    await addClip.mutateAsync(data as any);
+    reset();
+    setOpen(false);
+  };
+
+  return (
+    <Modal open={open} onClose={() => setOpen(false)} title="Add Clip" width="max-w-2xl">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+
+        {/* Basic Info */}
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="Clip Name *" placeholder="e.g. GRWM Morning Routine" error={errors.clip_name?.message} {...register('clip_name')} />
+          <Select
+            label="Category *"
+            placeholder="Select category"
+            options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+            error={errors.category?.message}
+            {...register('category')}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="Post Date" type="date" {...register('post_date')} />
+          <Select
+            label="Hook Style"
+            placeholder="Select style"
+            options={HOOK_STYLES.map((h) => ({ value: h, label: h }))}
+            {...register('hook_style')}
+          />
+        </div>
+
+        {/* Hook + Caption */}
+        <Textarea label="Hook" placeholder="Opening line or on-screen text..." rows={2} {...register('hook')} />
+        <Textarea label="Caption" placeholder="TikTok caption..." rows={2} {...register('caption')} />
+
+        {/* Tier 1 Metrics */}
+        <div>
+          <div className="font-mono text-[9px] tracking-[2px] uppercase mb-3" style={{ color: 'var(--red)' }}>
+            Tier 1 — Impact
+          </div>
+          <div className="grid grid-cols-4 gap-3">
+            <Input label="Saves"     type="number" placeholder="0" {...register('saves')} />
+            <Input label="Shares"    type="number" placeholder="0" {...register('shares')} />
+            <Input label="Watch %" type="number" placeholder="0" {...register('watch_time_pct')} />
+            <Input label="Profile Visits" type="number" placeholder="0" {...register('profile_visits')} />
+          </div>
+        </div>
+
+        {/* Tier 2 Metrics */}
+        <div>
+          <div className="font-mono text-[9px] tracking-[2px] uppercase mb-3" style={{ color: 'var(--gold)' }}>
+            Tier 2 — Monetization
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Input label="Aff. Clicks" type="number" placeholder="0" {...register('affiliate_clicks')} />
+            <Input label="Comments"   type="number" placeholder="0" {...register('comments')} />
+            <Input label="Reposts"    type="number" placeholder="0" {...register('reposts')} />
+          </div>
+        </div>
+
+        {/* Tier 3 Metrics */}
+        <div>
+          <div className="font-mono text-[9px] tracking-[2px] uppercase mb-3" style={{ color: 'var(--cyan)' }}>
+            Tier 3 — Reach
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="Views"           type="number" placeholder="0" {...register('views')} />
+            <Input label="Followers Gained" type="number" placeholder="0" {...register('followers_gained')} />
+          </div>
+        </div>
+
+        {/* Production */}
+        <div className="grid grid-cols-3 gap-3">
+          <Select label="Visual Style" placeholder="Style" options={VISUAL_STYLES.map((v) => ({ value: v, label: v }))} {...register('visual_style')} />
+          <Select label="Pacing"       placeholder="Pacing" options={PACING_OPTIONS.map((p) => ({ value: p, label: p }))} {...register('pacing')} />
+          <Select label="Lighting"     placeholder="Lighting" options={LIGHTING_OPTIONS.map((l) => ({ value: l, label: l }))} {...register('lighting')} />
+        </div>
+
+        <Input label="Sound Used" placeholder="Song name or original audio" {...register('sound_used')} />
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+          <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button type="submit" loading={addClip.isPending} className="ml-auto">Save Clip</Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
