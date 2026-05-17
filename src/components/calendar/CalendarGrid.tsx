@@ -9,11 +9,12 @@ import {
 interface CalendarGridProps {
   posts: ScheduledPost[];
   currentMonth: Date;
+  onDayClick?: (date: Date) => void;
 }
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export function CalendarGrid({ posts, currentMonth }: CalendarGridProps) {
+export function CalendarGrid({ posts, currentMonth, onDayClick }: CalendarGridProps) {
   const monthStart = startOfMonth(currentMonth);
   const monthEnd   = endOfMonth(currentMonth);
   const gridStart  = startOfWeek(monthStart);
@@ -56,7 +57,8 @@ export function CalendarGrid({ posts, currentMonth }: CalendarGridProps) {
           return (
             <div
               key={key}
-              className="min-h-[80px] rounded-lg p-1.5 flex flex-col gap-1"
+              onClick={() => inMonth && onDayClick?.(day)}
+              className={`min-h-[80px] rounded-lg p-1.5 flex flex-col gap-1 ${inMonth && onDayClick ? 'cursor-pointer' : ''}`}
               style={{
                 background: today ? 'var(--surface-3)' : 'var(--surface-2)',
                 border: today ? '1px solid var(--border-2)' : '1px solid transparent',

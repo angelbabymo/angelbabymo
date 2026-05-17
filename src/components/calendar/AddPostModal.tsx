@@ -22,14 +22,18 @@ const schema = z.object({
 });
 type FormData = z.infer<typeof schema>;
 
-export function AddPostModal() {
+interface AddPostModalProps {
+  prefilledDate?: string;
+}
+
+export function AddPostModal({ prefilledDate }: AddPostModalProps) {
   const open    = useUIStore((s) => s.addPostOpen);
   const setOpen = useUIStore((s) => s.setAddPostOpen);
   const add     = useAddPost();
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { status: 'scheduled', is_repost: false },
+    defaultValues: { status: 'scheduled', is_repost: false, scheduled_for: prefilledDate },
   });
 
   const onSubmit = async (data: FormData) => {
