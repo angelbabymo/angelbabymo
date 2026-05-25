@@ -47,7 +47,7 @@ export async function createNiche(brandId: string, name: string, keywords: strin
   const { data: { user } } = await supa.auth.getUser();
   if (!user) throw new Error('unauthorized');
   const { data, error } = await supa.from('niches').insert({
-    brand_id: brandId, user_id: user.id, name, keywords,
+    brand_id: brandId, user_id: user.id, name, keywords, enabled: true,
   }).select().single();
   if (error) throw new Error(error.message);
   revalidatePath('/brands');
