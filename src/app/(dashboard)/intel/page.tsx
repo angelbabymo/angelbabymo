@@ -5,6 +5,7 @@ import { useBrand } from '@/hooks/useBrand';
 import { ProductCard } from '@/components/intel/ProductCard';
 import { ScanNowButton } from '@/components/intel/ScanNowButton';
 import { PushPermissionPrompt } from '@/components/intel/PushPermissionPrompt';
+import { ScanParameters } from '@/components/intel/ScanParameters';
 import { Zap } from 'lucide-react';
 import Link from 'next/link';
 
@@ -70,6 +71,9 @@ export default function IntelPage() {
       </div>
 
       <PushPermissionPrompt />
+
+      {/* Scan parameters — always visible so user knows what's being scanned */}
+      {brand && <ScanParameters brandId={brand.id} />}
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-xl p-1" style={{ background: 'var(--surface-2)' }}>
