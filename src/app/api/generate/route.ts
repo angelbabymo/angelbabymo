@@ -55,8 +55,9 @@ Return ONLY a valid JSON object with this exact shape (no markdown, no explanati
     const generated = JSON.parse(cleaned);
 
     return NextResponse.json(generated);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Generate error:', error);
-    return NextResponse.json({ error: 'Generation failed' }, { status: 500 });
+    const message = error?.message ?? error?.error?.message ?? String(error);
+    return NextResponse.json({ error: `Generation failed: ${message}` }, { status: 500 });
   }
 }

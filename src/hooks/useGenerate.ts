@@ -24,11 +24,11 @@ export function useGenerate() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ description, category, clipName, brandId: brand?.id ?? null, globalRules }),
       });
-      if (!res.ok) throw new Error('Failed');
-      const result: GeneratedContent = await res.json();
-      setData(result);
-    } catch {
-      setError('Generation failed. Check your API key and try again.');
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload?.error ?? 'Failed');
+      setData(payload as GeneratedContent);
+    } catch (e: any) {
+      setError(e?.message ?? 'Generation failed. Check your API key and try again.');
     } finally {
       setLoading(false);
     }
