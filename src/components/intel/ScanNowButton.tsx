@@ -7,23 +7,27 @@ import { useScanStatus } from '@/hooks/useScanStatus';
 export function ScanNowButton() {
   const qc = useQueryClient();
   const { isScanning } = useScanStatus();
-  const [starting, setStarting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [starting, setStarting]   = useState(false);
+  const [errorMsg, setErrorMsg]   = useState<string | null>(null);
 
   const handleScan = async () => {
     if (isScanning || starting) return;
     setStarting(true);
     setErrorMsg(null);
     try {
-      const res = await fetch('/api/scan/manual', { method: 'POST' });
-      const j   = await res.json();
+      const res  = await fetch('/api/scan/manual', { method: 'POST' });
+      const text = await res.text();
+
+      let j: any = null;
+      try { j = JSON.parse(text); } catch { /* HTML error page */ }
+
       if (!res.ok) {
-        setErrorMsg(j.message ?? 'Scan failed');
+        setErrorMsg(j?.message ?? `Server error ${res.status}: ${text.slice(0, 120)}`);
       } else {
         qc.invalidateQueries({ queryKey: ['intel-scores'] });
       }
-    } catch {
-      setErrorMsg('Could not reach the server. Check your connection.');
+    } catch (e: any) {
+      setErrorMsg(`Network error: ${e?.message ?? e}`);
     } finally {
       setStarting(false);
     }
@@ -54,9 +58,7 @@ export function ScanNowButton() {
         >
           <AlertCircle size={13} className="shrink-0 mt-0.5" />
           <span className="flex-1 leading-relaxed">{errorMsg}</span>
-          <button onClick={() => setErrorMsg(null)} className="shrink-0">
-            <X size={12} />
-          </button>
+          <button onClick={() => setErrorMsg(null)} className="shrink-0"><X size={12} /></button>
         </div>
       )}
     </div>
