@@ -44,7 +44,7 @@ Return ONLY a valid JSON object with this exact shape (no markdown, no explanati
 }`;
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1500,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
