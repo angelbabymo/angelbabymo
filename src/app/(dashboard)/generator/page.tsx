@@ -2,9 +2,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useGenerate } from '@/hooks/useGenerate';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
-import { GenerationRules } from '@/components/generator/GenerationRules';
-import { loadRules } from '@/components/generator/GenerationRules';
-import { GeneratedContent } from '@/types';
+import { GenerationRules, loadRules } from '@/components/generator/GenerationRules';
 import { Zap, Mic, MicOff, BookOpen, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CATEGORIES } from '@/lib/constants';
@@ -27,7 +25,10 @@ type FormData = z.infer<typeof schema>;
 export default function GeneratorPage() {
   const { generate, data, loading, error, reset } = useGenerate();
   const [rulesOpen, setRulesOpen] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [interimText, setInterimText] = useState('');
+
+  // Holds all finalized speech so interim preview is appended correctly
+  const committedRef = useRef('');
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -36,13 +37,25 @@ export default function GeneratorPage() {
 
   const description = watch('description');
 
-  const onTranscript = useCallback((text: string) => {
-    const current = textareaRef.current?.value ?? '';
-    const next = current ? `${current} ${text}` : text;
+  const onFinal = useCallback((text: string) => {
+    const base = committedRef.current;
+    const next = base ? `${base} ${text}` : text;
+    committedRef.current = next;
+    setInterimText('');
     setValue('description', next, { shouldValidate: true });
   }, [setValue]);
 
-  const { listening, supported, toggle: toggleMic } = useVoiceInput(onTranscript);
+  const onInterim = useCallback((text: string) => {
+    setInterimText(text);
+  }, []);
+
+  const { listening, supported, toggle: toggleMic } = useVoiceInput({ onFinal, onInterim });
+
+  // Keep committedRef in sync if user manually edits the textarea
+  const handleDescriptionChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    committedRef.current = e.target.value;
+    setValue('description', e.target.value, { shouldValidate: true });
+  }, [setValue]);
 
   const onSubmit = async (fd: FormData) => {
     await generate(fd.description, fd.category, fd.clipName);
@@ -52,6 +65,11 @@ export default function GeneratorPage() {
   const activePillars = rules.pillars.length;
   const hasCustomRules = !!rules.customRules.trim();
   const rulesActive = activePillars > 0 || hasCustomRules;
+
+  // What the textarea displays: committed text + live interim
+  const displayValue = interimText
+    ? (description ? `${description} ${interimText}` : interimText)
+    : description;
 
   return (
     <div className="flex flex-col gap-6 animate-[fadeUp_0.3s_ease_both]">
@@ -68,7 +86,6 @@ export default function GeneratorPage() {
             </p>
           </div>
 
-          {/* Rules button */}
           <button
             type="button"
             onClick={() => setRulesOpen(true)}
@@ -107,7 +124,7 @@ export default function GeneratorPage() {
           />
         </div>
 
-        {/* Description with mic button */}
+        {/* Description with voice */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
             <label className="text-[12px] font-medium" style={{ color: 'var(--text-2)' }}>
@@ -134,6 +151,7 @@ export default function GeneratorPage() {
                       width: 6, height: 6, borderRadius: '50%',
                       background: 'var(--red)',
                       animation: 'pulse 1s ease infinite',
+                      flexShrink: 0,
                     }} />
                     <MicOff size={12} />
                     Stop
@@ -147,31 +165,57 @@ export default function GeneratorPage() {
               </button>
             )}
           </div>
-          <textarea
-            {...register('description')}
-            ref={(el) => {
-              (register('description') as any).ref(el);
-              (textareaRef as any).current = el;
-            }}
-            placeholder={listening
-              ? 'Listening… speak now'
-              : 'Tell me what happens in the clip — the vibe, any affiliate product, who it\'s for, what emotion you want to trigger...'
-            }
-            rows={5}
-            style={{
-              width: '100%',
-              background: listening ? 'rgba(255,60,110,0.06)' : 'var(--surface-2)',
-              border: `1px solid ${listening ? 'rgba(255,60,110,0.4)' : 'var(--border)'}`,
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 13,
-              color: 'var(--text)',
-              resize: 'none',
-              outline: 'none',
-              transition: 'border-color 0.15s, background 0.15s',
-            }}
-          />
-          {errors.description && (
+
+          {/* Textarea — shows committed text + live interim in real time */}
+          <div style={{ position: 'relative' }}>
+            <textarea
+              value={displayValue}
+              onChange={handleDescriptionChange}
+              placeholder={listening
+                ? 'Listening… speak now'
+                : "Tell me what happens in the clip — the vibe, any affiliate product, who it's for, what emotion you want to trigger..."
+              }
+              rows={5}
+              style={{
+                width: '100%',
+                background: listening ? 'rgba(255,60,110,0.05)' : 'var(--surface-2)',
+                border: `1px solid ${listening ? 'rgba(255,60,110,0.4)' : errors.description ? 'var(--red)' : 'var(--border)'}`,
+                borderRadius: 8,
+                padding: '10px 12px',
+                fontSize: 13,
+                color: 'var(--text)',
+                resize: 'none',
+                outline: 'none',
+                transition: 'border-color 0.15s, background 0.15s',
+                lineHeight: 1.6,
+              }}
+            />
+            {/* Listening pulse bar */}
+            {listening && (
+              <div style={{
+                position: 'absolute', bottom: 0, left: 0, right: 0,
+                height: 2, borderRadius: '0 0 8px 8px',
+                background: 'var(--red)',
+                animation: 'pulse 1.2s ease infinite',
+              }} />
+            )}
+          </div>
+
+          {/* Live interim preview label */}
+          {listening && (
+            <p style={{ fontSize: 11, color: 'var(--red)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{
+                width: 5, height: 5, borderRadius: '50%',
+                background: 'var(--red)',
+                animation: 'pulse 1s ease infinite',
+                flexShrink: 0,
+                display: 'inline-block',
+              }} />
+              {interimText ? 'Transcribing…' : 'Listening — speak now'}
+            </p>
+          )}
+
+          {errors.description && !listening && (
             <span className="text-[11px]" style={{ color: 'var(--red)' }}>{errors.description.message}</span>
           )}
         </div>
@@ -199,7 +243,6 @@ export default function GeneratorPage() {
         </div>
       </form>
 
-      {/* Results */}
       <AnimatePresence>
         {data && (
           <motion.div
@@ -215,7 +258,6 @@ export default function GeneratorPage() {
         )}
       </AnimatePresence>
 
-      {/* Empty state */}
       {!data && !loading && (
         <div
           className="flex flex-col items-center justify-center py-16 rounded-xl"

@@ -1,18 +1,22 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export function useVoiceInput(onTranscript: (text: string) => void) {
+interface Callbacks {
+  onFinal:   (text: string) => void;
+  onInterim: (text: string) => void;
+}
+
+export function useVoiceInput({ onFinal, onInterim }: Callbacks) {
   const [listening, setListening] = useState(false);
   const [supported] = useState(() =>
     typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
   );
 
-  // Keep onTranscript stable via ref so start() closure never goes stale
-  const transcriptRef = useRef(onTranscript);
-  useEffect(() => { transcriptRef.current = onTranscript; }, [onTranscript]);
+  const finalRef   = useRef(onFinal);
+  const interimRef = useRef(onInterim);
+  useEffect(() => { finalRef.current = onFinal; interimRef.current = onInterim; }, [onFinal, onInterim]);
 
-  const recRef = useRef<any>(null);
-  // Flag so onend knows whether WE stopped it (vs auto-stop)
+  const recRef      = useRef<any>(null);
   const stoppingRef = useRef(false);
 
   const stop = useCallback(() => {
@@ -20,42 +24,39 @@ export function useVoiceInput(onTranscript: (text: string) => void) {
     recRef.current?.abort();
     recRef.current = null;
     setListening(false);
+    interimRef.current(''); // clear live preview
   }, []);
 
   const start = useCallback(() => {
     if (!supported) return;
-    // Clean up any previous instance
-    if (recRef.current) {
-      stoppingRef.current = true;
-      recRef.current.abort();
-      recRef.current = null;
-    }
+    if (recRef.current) { stoppingRef.current = true; recRef.current.abort(); recRef.current = null; }
 
     const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
     const rec = new SR();
-    rec.lang = 'en-US';
-    rec.continuous = true;       // keep listening until explicitly stopped
-    rec.interimResults = false;
+    rec.lang            = 'en-US';
+    rec.continuous      = true;
+    rec.interimResults  = true;
     rec.maxAlternatives = 1;
 
     rec.onresult = (e: any) => {
-      // Collect all new final results since last call
-      let text = '';
+      let interim = '';
+      let finalText = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) text += e.results[i][0].transcript + ' ';
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalText += t + ' ';
+        else interim += t;
       }
-      if (text.trim()) transcriptRef.current(text.trim());
+      if (interim)          interimRef.current(interim);
+      if (finalText.trim()) finalRef.current(finalText.trim());
     };
 
     rec.onend = () => {
-      // Only update state if we didn't already set it in stop()
-      if (!stoppingRef.current) setListening(false);
+      if (!stoppingRef.current) { setListening(false); interimRef.current(''); }
       stoppingRef.current = false;
     };
 
     rec.onerror = (e: any) => {
-      // 'aborted' is expected when we call abort() — ignore it
-      if (e.error !== 'aborted') setListening(false);
+      if (e.error !== 'aborted') { setListening(false); interimRef.current(''); }
       stoppingRef.current = false;
     };
 
@@ -70,7 +71,6 @@ export function useVoiceInput(onTranscript: (text: string) => void) {
     else start();
   }, [start, stop]);
 
-  // Clean up on unmount
   useEffect(() => () => { stoppingRef.current = true; recRef.current?.abort(); }, []);
 
   return { listening, supported, toggle };
