@@ -1,6 +1,7 @@
 import { anthropic } from '@/lib/claude';
 import { NextRequest, NextResponse } from 'next/server';
 import { format, addDays, startOfWeek, parseISO } from 'date-fns';
+import { logUsage } from '@/lib/logUsage';
 
 export async function POST(req: NextRequest) {
   try {
@@ -51,6 +52,8 @@ RULES:
     const text    = response.content[0].type === 'text' ? response.content[0].text : '[]';
     const cleaned = text.replace(/```json|```/g, '').trim();
     const posts   = JSON.parse(cleaned);
+
+    logUsage({ agent: 'scheduler', model: 'claude-sonnet-4-6', inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens });
 
     return NextResponse.json({ posts });
   } catch (error) {

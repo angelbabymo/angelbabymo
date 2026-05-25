@@ -1,6 +1,7 @@
 import { anthropic, SYSTEM_PROMPT } from '@/lib/claude';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { logUsage } from '@/lib/logUsage';
 
 export async function POST(req: NextRequest) {
   try {
@@ -53,6 +54,8 @@ Return ONLY a valid JSON object with this exact shape (no markdown, no explanati
     const text    = response.content[0].type === 'text' ? response.content[0].text : '';
     const cleaned = text.replace(/```json|```/g, '').trim();
     const generated = JSON.parse(cleaned);
+
+    logUsage({ agent: 'generator', model: 'claude-sonnet-4-6', inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens, brandId });
 
     return NextResponse.json(generated);
   } catch (error: any) {

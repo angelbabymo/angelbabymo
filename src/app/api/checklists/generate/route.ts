@@ -1,6 +1,7 @@
 import { anthropic } from '@/lib/claude';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { logUsage } from '@/lib/logUsage';
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -40,6 +41,7 @@ Return this exact JSON shape:
   try {
     const text    = response.content[0].type === 'text' ? response.content[0].text : '';
     const cleaned = text.replace(/```json|```/g, '').trim();
+    logUsage({ agent: 'checklist', model: 'claude-sonnet-4-6', inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens });
     return NextResponse.json(JSON.parse(cleaned));
   } catch {
     return NextResponse.json({ error: 'Failed to parse AI response' }, { status: 500 });

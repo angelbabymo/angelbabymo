@@ -1,13 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Database, Zap, BarChart2, Calendar, Lightbulb, CheckSquare, TrendingUp, Tag } from 'lucide-react';
+import { Database, Zap, BarChart2, Calendar, Lightbulb, CheckSquare, TrendingUp, Tag, Activity } from 'lucide-react';
 import { BrandSwitcherGlobal } from '@/components/brand/BrandSwitcherGlobal';
 
 const NAV_ITEMS = [
   { href: '/intel',       icon: TrendingUp,   label: 'Product Intel' },
   { href: '/database',    icon: Database,     label: 'Content DB' },
   { href: '/generator',   icon: Zap,          label: 'AI Generator' },
+  { href: '/ai',          icon: Activity,     label: 'AI Activity' },
   { href: '/performance', icon: BarChart2,    label: 'Performance' },
   { href: '/calendar',    icon: Calendar,     label: 'Calendar' },
   { href: '/checklists',  icon: CheckSquare,  label: 'Checklists' },

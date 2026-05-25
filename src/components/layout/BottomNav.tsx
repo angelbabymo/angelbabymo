@@ -1,14 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Database, Zap, Calendar, CheckSquare, TrendingUp } from 'lucide-react';
+import { Database, Zap, Calendar, CheckSquare, TrendingUp, Activity } from 'lucide-react';
 
 const NAV_ITEMS = [
   { href: '/intel',      icon: TrendingUp,  label: 'Intel' },
   { href: '/database',   icon: Database,    label: 'Content' },
   { href: '/generator',  icon: Zap,         label: 'Generate' },
   { href: '/checklists', icon: CheckSquare, label: 'Tasks' },
-  { href: '/calendar',   icon: Calendar,    label: 'Schedule' },
+  { href: '/ai',         icon: Activity,    label: 'AI' },
 ];
 
 export function BottomNav() {
