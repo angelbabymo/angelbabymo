@@ -2,68 +2,70 @@
 import { useEffect, useState, KeyboardEvent } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { createNiche, updateNiche, deleteNiche } from '@/app/actions/brands';
-import { Plus, X, ChevronDown, ChevronUp, ToggleLeft, ToggleRight, Search, Trash2 } from 'lucide-react';
+import { Plus, X, ChevronDown, ChevronUp, ToggleLeft, ToggleRight, Search, Trash2, Sparkles, Loader2 } from 'lucide-react';
 
-interface Props {
-  brandId: string;
-}
+interface Props { brandId: string }
 
 export function ScanParameters({ brandId }: Props) {
-  const [niches, setNiches]     = useState<any[]>([]);
-  const [expanded, setExpanded] = useState(false);
-  const [newName, setNewName]   = useState('');
-  const [adding, setAdding]     = useState(false);
+  const [niches, setNiches]       = useState<any[]>([]);
+  const [expanded, setExpanded]   = useState(false);
+  const [description, setDescription] = useState('');
+  const [generating, setGenerating]   = useState(false);
+  const [preview, setPreview]     = useState<{ name: string; keywords: string[] } | null>(null);
+  const [error, setError]         = useState<string | null>(null);
+  const [saving, setSaving]       = useState(false);
   const supabase = createClient();
 
   const load = async () => {
-    const { data } = await supabase
-      .from('niches')
-      .select('*')
-      .eq('brand_id', brandId)
-      .order('created_at');
+    const { data } = await supabase.from('niches').select('*').eq('brand_id', brandId).order('created_at');
     setNiches(data ?? []);
   };
 
   useEffect(() => { load(); }, [brandId]);
+  useEffect(() => { if (niches.length === 0) setExpanded(true); }, [niches.length]);
 
-  // Auto-expand if no niches so user immediately sees the setup prompt
-  useEffect(() => {
-    if (niches.length === 0) setExpanded(true);
-  }, [niches.length]);
-
-  const handleAdd = async () => {
-    const name = newName.trim();
-    if (!name) return;
-    setAdding(true);
-    await createNiche(brandId, name, []);
-    setNewName('');
-    await load();
-    setAdding(false);
+  const handleGenerate = async () => {
+    if (!description.trim() || generating) return;
+    setGenerating(true);
+    setError(null);
+    setPreview(null);
+    try {
+      const res = await fetch('/api/niches/generate-keywords', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ description }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error ?? 'Generation failed');
+      setPreview(j);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setGenerating(false);
+    }
   };
 
-  const handleToggle = async (n: any) => {
-    await updateNiche(n.id, { enabled: !n.enabled });
+  const handleSave = async () => {
+    if (!preview) return;
+    setSaving(true);
+    await createNiche(brandId, preview.name, preview.keywords);
+    setPreview(null);
+    setDescription('');
     await load();
+    setSaving(false);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this niche?')) return;
-    await deleteNiche(id);
-    await load();
-  };
+  const handleToggle = async (n: any) => { await updateNiche(n.id, { enabled: !n.enabled }); await load(); };
+  const handleDelete = async (id: string) => { if (!confirm('Delete this niche?')) return; await deleteNiche(id); await load(); };
 
-  const allKeywords = niches.filter(n => n.enabled).flatMap((n: any) => n.keywords ?? []);
+  const allKeywords  = niches.filter(n => n.enabled).flatMap((n: any) => n.keywords ?? []);
   const enabledCount = niches.filter(n => n.enabled).length;
 
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
 
-      {/* Header row — always visible */}
-      <button
-        onClick={() => setExpanded(e => !e)}
-        className="w-full flex items-center gap-3 px-4 py-3"
-        style={{ textAlign: 'left' }}
-      >
+      {/* Collapsed header */}
+      <button onClick={() => setExpanded(e => !e)} className="w-full flex items-center gap-3 px-4 py-3" style={{ textAlign: 'left' }}>
         <div style={{
           width: 30, height: 30, borderRadius: 9, flexShrink: 0,
           background: enabledCount > 0 ? 'rgba(255,60,110,0.12)' : 'var(--surface-2)',
@@ -74,96 +76,135 @@ export function ScanParameters({ brandId }: Props) {
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
-            Scan Parameters
-          </p>
+          <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Scan Parameters</p>
           <p style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
             {niches.length === 0
               ? 'No niches configured — tap to set up'
               : enabledCount === 0
                 ? `${niches.length} niche${niches.length !== 1 ? 's' : ''}, none enabled`
-                : `${enabledCount} active · ${allKeywords.length} keyword${allKeywords.length !== 1 ? 's' : ''}`
-            }
+                : `${enabledCount} active · ${allKeywords.length} keyword${allKeywords.length !== 1 ? 's' : ''}`}
           </p>
         </div>
 
-        {/* Keyword pills preview when collapsed */}
         {!expanded && allKeywords.length > 0 && (
-          <div className="hidden sm:flex items-center gap-1 flex-wrap" style={{ maxWidth: 180 }}>
+          <div className="hidden sm:flex items-center gap-1">
             {allKeywords.slice(0, 3).map((kw: string) => (
-              <span key={kw} style={{
-                fontSize: 10, padding: '2px 7px', borderRadius: 5, fontWeight: 600,
-                background: 'rgba(255,60,110,0.1)', color: 'var(--red)',
-              }}>
+              <span key={kw} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 5, fontWeight: 600, background: 'rgba(255,60,110,0.1)', color: 'var(--red)' }}>
                 {kw}
               </span>
             ))}
-            {allKeywords.length > 3 && (
-              <span style={{ fontSize: 10, color: 'var(--text-3)' }}>+{allKeywords.length - 3}</span>
-            )}
+            {allKeywords.length > 3 && <span style={{ fontSize: 10, color: 'var(--text-3)' }}>+{allKeywords.length - 3}</span>}
           </div>
         )}
-
-        {expanded
-          ? <ChevronUp size={15} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
-          : <ChevronDown size={15} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
-        }
+        {expanded ? <ChevronUp size={15} style={{ color: 'var(--text-3)', flexShrink: 0 }} /> : <ChevronDown size={15} style={{ color: 'var(--text-3)', flexShrink: 0 }} />}
       </button>
 
-      {/* Expanded content */}
+      {/* Expanded */}
       {expanded && (
-        <div style={{ borderTop: '1px solid var(--border)', padding: '12px 16px 16px' }}>
+        <div style={{ borderTop: '1px solid var(--border)', padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-          {niches.length === 0 && (
-            <div className="flex flex-col items-center gap-2 py-4 text-center mb-4">
-              <Search size={22} style={{ color: 'var(--text-3)' }} />
-              <p style={{ fontSize: 13, color: 'var(--text-2)', fontWeight: 600 }}>
-                No niches set up yet
-              </p>
-              <p style={{ fontSize: 12, color: 'var(--text-3)', maxWidth: 260, lineHeight: 1.5 }}>
-                Niches tell the scanner what TikTok products to find. Add one below — e.g. "Fashion", "Shoes", "Skincare".
-              </p>
+          {/* Existing niches */}
+          {niches.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {niches.map(n => (
+                <NicheRow key={n.id} niche={n} onToggle={() => handleToggle(n)} onDelete={() => handleDelete(n.id)} onUpdate={load} />
+              ))}
             </div>
           )}
 
-          {/* Niche list */}
-          <div className="flex flex-col gap-3 mb-3">
-            {niches.map(n => (
-              <NicheRow
-                key={n.id}
-                niche={n}
-                onToggle={() => handleToggle(n)}
-                onDelete={() => handleDelete(n.id)}
-                onUpdate={load}
-              />
-            ))}
-          </div>
+          {/* AI niche builder */}
+          <div style={{
+            borderRadius: 14, padding: 14,
+            background: 'var(--surface-2)',
+            border: '1px solid var(--border)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+              <Sparkles size={13} style={{ color: 'var(--red)' }} />
+              <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>Add Niche with AI</p>
+              <span style={{ fontSize: 10, color: 'var(--text-3)', marginLeft: 'auto', fontFamily: 'monospace' }}>~$0.001 per niche</span>
+            </div>
 
-          {/* Add niche */}
-          <div className="flex gap-2">
-            <input
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleAdd()}
-              placeholder='Add niche — e.g. "Shoes" or "Skincare"'
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Describe what you sell and who buys it — e.g. &quot;Soft luxury feminine fashion and accessories for women 18-35 who love aesthetic, clean-girl style&quot;"
+              rows={3}
               style={{
-                flex: 1, borderRadius: 10, padding: '9px 12px',
-                background: 'var(--surface-2)', border: '1px solid var(--border)',
-                color: 'var(--text)', fontSize: 13, outline: 'none',
+                width: '100%', borderRadius: 10, padding: '10px 12px',
+                background: 'var(--surface-3)', border: '1px solid var(--border)',
+                color: 'var(--text)', fontSize: 13, resize: 'none', outline: 'none',
+                lineHeight: 1.5,
               }}
             />
-            <button
-              onClick={handleAdd}
-              disabled={adding || !newName.trim()}
-              style={{
-                padding: '9px 14px', borderRadius: 10,
-                background: 'var(--red)', color: '#fff',
-                fontSize: 13, fontWeight: 600,
-                opacity: adding || !newName.trim() ? 0.5 : 1,
-              }}
-            >
-              <Plus size={15} />
-            </button>
+
+            {error && (
+              <p style={{ fontSize: 11, color: 'var(--red)', marginTop: 6 }}>{error}</p>
+            )}
+
+            {/* Preview */}
+            {preview && (
+              <div style={{ marginTop: 10, padding: 12, borderRadius: 10, background: 'var(--surface)', border: '1px solid rgba(255,60,110,0.25)' }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+                  "{preview.name}"
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
+                  {preview.keywords.map(kw => (
+                    <span key={kw} style={{
+                      fontSize: 11, padding: '3px 9px', borderRadius: 6, fontWeight: 600,
+                      background: 'rgba(255,60,110,0.1)', color: 'var(--red)',
+                      border: '1px solid rgba(255,60,110,0.2)',
+                    }}>
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    style={{
+                      flex: 1, padding: '8px 0', borderRadius: 9,
+                      background: 'var(--red)', color: '#fff',
+                      fontSize: 12, fontWeight: 700,
+                      opacity: saving ? 0.6 : 1,
+                    }}
+                  >
+                    {saving ? 'Saving…' : 'Save This Niche'}
+                  </button>
+                  <button
+                    onClick={() => { setPreview(null); setDescription(''); }}
+                    style={{
+                      padding: '8px 12px', borderRadius: 9,
+                      background: 'var(--surface-2)', border: '1px solid var(--border)',
+                      color: 'var(--text-3)', fontSize: 12,
+                    }}
+                  >
+                    Discard
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!preview && (
+              <button
+                onClick={handleGenerate}
+                disabled={generating || !description.trim()}
+                style={{
+                  marginTop: 8,
+                  width: '100%', padding: '9px 0', borderRadius: 10,
+                  background: description.trim() ? 'var(--red)' : 'var(--surface-3)',
+                  color: description.trim() ? '#fff' : 'var(--text-3)',
+                  fontSize: 13, fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                  transition: 'all 0.15s',
+                }}
+              >
+                {generating
+                  ? <><Loader2 size={13} className="animate-spin" /> Generating keywords…</>
+                  : <><Sparkles size={13} /> Generate Keywords</>
+                }
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -194,63 +235,45 @@ function NicheRow({ niche, onToggle, onDelete, onUpdate }: {
     onUpdate();
   };
 
-  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') { e.preventDefault(); addKeyword(); }
-  };
-
   return (
-    <div
-      className="rounded-xl p-3 flex flex-col gap-2"
-      style={{
-        background: 'var(--surface-2)',
-        border: `1px solid ${niche.enabled ? 'rgba(255,60,110,0.2)' : 'var(--border)'}`,
-        opacity: niche.enabled ? 1 : 0.6,
-      }}
-    >
-      {/* Niche header */}
-      <div className="flex items-center justify-between gap-2">
-        <p style={{ fontSize: 13, fontWeight: 700, color: niche.enabled ? 'var(--text)' : 'var(--text-3)' }}>
-          {niche.name}
-        </p>
-        <div className="flex items-center gap-2">
-          <button onClick={onToggle} style={{ color: niche.enabled ? 'var(--red)' : 'var(--text-3)', flexShrink: 0 }}>
+    <div style={{
+      borderRadius: 12, padding: '10px 12px',
+      background: 'var(--surface-2)',
+      border: `1px solid ${niche.enabled ? 'rgba(255,60,110,0.2)' : 'var(--border)'}`,
+      opacity: niche.enabled ? 1 : 0.55,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: keywords.length ? 8 : 0 }}>
+        <p style={{ fontSize: 13, fontWeight: 700, color: niche.enabled ? 'var(--text)' : 'var(--text-3)' }}>{niche.name}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={onToggle} style={{ color: niche.enabled ? 'var(--red)' : 'var(--text-3)' }}>
             {niche.enabled ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
           </button>
-          <button onClick={onDelete} style={{ color: 'var(--text-3)', flexShrink: 0 }}>
-            <Trash2 size={13} />
-          </button>
+          <button onClick={onDelete} style={{ color: 'var(--text-3)' }}><Trash2 size={13} /></button>
         </div>
       </div>
 
-      {/* Keywords */}
       {keywords.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
           {keywords.map(kw => (
-            <span
-              key={kw}
-              className="flex items-center gap-1"
-              style={{
-                padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600,
-                background: niche.enabled ? 'rgba(255,60,110,0.1)' : 'var(--surface-3)',
-                color: niche.enabled ? 'var(--red)' : 'var(--text-3)',
-                border: `1px solid ${niche.enabled ? 'rgba(255,60,110,0.2)' : 'var(--border)'}`,
-              }}
-            >
+            <span key={kw} style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+              background: niche.enabled ? 'rgba(255,60,110,0.1)' : 'var(--surface-3)',
+              color: niche.enabled ? 'var(--red)' : 'var(--text-3)',
+              border: `1px solid ${niche.enabled ? 'rgba(255,60,110,0.2)' : 'var(--border)'}`,
+            }}>
               {kw}
-              <button onClick={() => removeKeyword(kw)} style={{ opacity: 0.7 }}>
-                <X size={9} />
-              </button>
+              <button onClick={() => removeKeyword(kw)}><X size={9} /></button>
             </span>
           ))}
         </div>
       )}
 
-      {/* Add keyword */}
-      <div className="flex gap-1.5">
+      <div style={{ display: 'flex', gap: 6 }}>
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
-          onKeyDown={onKeyDown}
+          onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') { e.preventDefault(); addKeyword(); } }}
           placeholder="Add keyword…"
           style={{
             flex: 1, borderRadius: 7, padding: '5px 9px',
@@ -258,24 +281,14 @@ function NicheRow({ niche, onToggle, onDelete, onUpdate }: {
             color: 'var(--text)', fontSize: 12, outline: 'none',
           }}
         />
-        <button
-          onClick={addKeyword}
-          disabled={!input.trim()}
-          style={{
-            padding: '5px 9px', borderRadius: 7,
-            background: 'var(--surface-3)', border: '1px solid var(--border)',
-            color: 'var(--text-3)', opacity: !input.trim() ? 0.4 : 1,
-          }}
-        >
+        <button onClick={addKeyword} disabled={!input.trim()} style={{
+          padding: '5px 9px', borderRadius: 7,
+          background: 'var(--surface-3)', border: '1px solid var(--border)',
+          color: 'var(--text-3)', opacity: !input.trim() ? 0.4 : 1,
+        }}>
           <Plus size={12} />
         </button>
       </div>
-
-      {keywords.length === 0 && (
-        <p style={{ fontSize: 11, color: 'var(--text-3)', fontStyle: 'italic' }}>
-          No keywords yet — add some above so the scanner knows what to find
-        </p>
-      )}
     </div>
   );
 }
