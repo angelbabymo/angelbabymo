@@ -2,6 +2,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { ProfileSwitcher } from '@/components/brand/ProfileSwitcher';
 
 const ROUTE_LABELS: Record<string, string> = {
   '/database':    'Content DB',
@@ -28,14 +29,17 @@ export function Topbar() {
         borderBottom: '1px solid var(--border)',
         background: 'var(--surface)',
         paddingTop: 'env(safe-area-inset-top)',
+        position: 'relative',
+        zIndex: 50,
+        overflow: 'visible',
       }}
       className="h-14 px-4 md:px-8 flex items-center justify-between shrink-0"
     >
-      {/* Mobile logo / Desktop page title */}
+      {/* Mobile: brand switcher / Desktop: page title */}
       <div className="flex items-center gap-3">
-        <span className="font-display tracking-widest text-lg md:hidden" style={{ color: 'var(--text)' }}>
-          CREATOR<span style={{ color: 'var(--red)' }}>OS</span>
-        </span>
+        <div className="md:hidden">
+          <ProfileSwitcher />
+        </div>
         <h1 className="font-display tracking-widest text-lg hidden md:block" style={{ color: 'var(--text)' }}>
           {label.toUpperCase()}
         </h1>

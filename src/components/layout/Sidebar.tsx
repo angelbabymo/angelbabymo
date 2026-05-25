@@ -1,14 +1,18 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Database, Zap, BarChart2, Calendar, Lightbulb } from 'lucide-react';
+import { Database, Zap, BarChart2, Calendar, Lightbulb, CheckSquare, TrendingUp, Tag } from 'lucide-react';
+import { BrandSwitcherGlobal } from '@/components/brand/BrandSwitcherGlobal';
 
 const NAV_ITEMS = [
-  { href: '/database',    icon: Database,  label: 'Content DB' },
-  { href: '/generator',   icon: Zap,       label: 'AI Generator' },
-  { href: '/performance', icon: BarChart2, label: 'Performance' },
-  { href: '/calendar',    icon: Calendar,  label: 'Calendar' },
-  { href: '/vault',       icon: Lightbulb, label: 'Idea Vault' },
+  { href: '/intel',       icon: TrendingUp,   label: 'Product Intel' },
+  { href: '/database',    icon: Database,     label: 'Content DB' },
+  { href: '/generator',   icon: Zap,          label: 'AI Generator' },
+  { href: '/performance', icon: BarChart2,    label: 'Performance' },
+  { href: '/calendar',    icon: Calendar,     label: 'Calendar' },
+  { href: '/checklists',  icon: CheckSquare,  label: 'Checklists' },
+  { href: '/vault',       icon: Lightbulb,    label: 'Idea Vault' },
+  { href: '/brands',      icon: Tag,          label: 'Brands' },
 ];
 
 export function Sidebar() {
@@ -20,16 +24,18 @@ export function Sidebar() {
       className="w-[220px] shrink-0 hidden md:flex flex-col h-screen sticky top-0"
     >
       {/* Logo */}
-      <div style={{ borderBottom: '1px solid var(--border)' }} className="px-5 py-6">
+      <div className="px-5 pt-6 pb-4">
         <div className="font-display text-2xl tracking-widest leading-none" style={{ color: 'var(--text)' }}>
           CREATOR<span style={{ color: 'var(--red)' }}>OS</span>
         </div>
-        <div
-          className="font-mono text-[9px] tracking-[3px] mt-1 uppercase"
-          style={{ color: 'var(--text-3)' }}
-        >
+        <div className="font-mono text-[9px] tracking-[3px] mt-1 uppercase" style={{ color: 'var(--text-3)' }}>
           LITE · V1.0
         </div>
+      </div>
+
+      {/* Brand switcher */}
+      <div style={{ borderBottom: '1px solid var(--border)' }} className="pb-1">
+        <BrandSwitcherGlobal />
       </div>
 
       {/* Nav */}

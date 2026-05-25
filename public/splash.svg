@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1170 2532" width="1170" height="2532">
+  <defs>
+    <linearGradient id="sp-brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#ff7aa8"/>
+      <stop offset="50%"  stop-color="#ff3c6e"/>
+      <stop offset="100%" stop-color="#cc1f4f"/>
+    </linearGradient>
+    <radialGradient id="sp-glow" cx="585" cy="1200" r="280" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#ff3c6e" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#ff3c6e" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="sp-clip">
+      <circle cx="585" cy="1200" r="145"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1170" height="2532" fill="#09090b"/>
+  <rect width="1170" height="2532" fill="url(#sp-glow)"/>
+
+  <!-- Orb base -->
+  <circle cx="585" cy="1200" r="145" fill="#0d0d10"/>
+
+  <!-- Orb content (icon paths scaled 0.45× from 1024×1024 source, offset to 585,1200) -->
+  <g clip-path="url(#sp-clip)">
+    <ellipse cx="585" cy="1200" rx="90" ry="84" fill="#ff3c6e" fill-opacity="0.08"/>
+    <!-- Thin arc: r=77, start=(633,1239) end=(633,1161) -->
+    <path d="M 633,1239 A 77,77 0 1,1 633,1161"
+      fill="none" stroke="#ff7aa8" stroke-width="1.5" stroke-linecap="round" opacity="0.18"/>
+    <!-- Fat arc: r=96, stroke=34, start=(639,1280) end=(639,1120) -->
+    <path d="M 639,1280 A 96,96 0 1,1 639,1120"
+      fill="none" stroke="url(#sp-brand)" stroke-width="34" stroke-linecap="round"/>
+    <!-- Arrow: (689,1200) (648,1171) (648,1229) -->
+    <polygon points="689,1200 648,1171 648,1229" fill="url(#sp-brand)"/>
+    <!-- Core -->
+    <circle cx="585" cy="1200" r="12" fill="url(#sp-brand)"/>
+    <circle cx="585" cy="1200" r="5"  fill="#09090b"/>
+  </g>
+
+  <!-- Orb border -->
+  <circle cx="585" cy="1200" r="145" fill="none" stroke="#ff3c6e" stroke-width="1" opacity="0.2"/>
+  <circle cx="585" cy="1200" r="168" fill="none" stroke="#ff3c6e" stroke-width="0.5" opacity="0.06"/>
+
+  <!-- App name -->
+  <text x="585" y="1428"
+    text-anchor="middle"
+    font-family="Arial Black, Impact, Helvetica Neue, sans-serif"
+    font-weight="900"
+    font-size="74"
+    letter-spacing="-2"
+    fill="#fafafa">CREATOR<tspan fill="#ff3c6e">OS</tspan></text>
+
+  <!-- Tagline -->
+  <text x="585" y="1480"
+    text-anchor="middle"
+    font-family="Courier New, Courier, monospace"
+    font-size="20"
+    letter-spacing="6"
+    fill="#252530">LITE</text>
+</svg>

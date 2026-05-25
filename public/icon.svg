@@ -1,5 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#09090b"/>
-  <rect x="20" y="20" width="472" height="472" rx="80" fill="#111113"/>
-  <path d="M296 96L172 272h112L208 416l188-224H284L296 96z" fill="#ff3c6e"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#111113"/>
+      <stop offset="100%" stop-color="#09090b"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#ff7aa8"/>
+      <stop offset="50%"  stop-color="#ff3c6e"/>
+      <stop offset="100%" stop-color="#cc1f4f"/>
+    </linearGradient>
+    <radialGradient id="vignette" cx="50%" cy="50%" r="60%">
+      <stop offset="0%"   stop-color="#1a1820" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#060608"  stop-opacity="0.7"/>
+    </radialGradient>
+    <radialGradient id="glowBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#ff3c6e" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#ff3c6e" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="coreglow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#vignette)"/>
+  <ellipse cx="512" cy="512" rx="340" ry="320" fill="url(#glowBg)"/>
+  <path d="M 618,598 A 172,172 0 1,1 618,426" fill="none" stroke="#ff7aa8" stroke-width="1.5" stroke-linecap="round" opacity="0.14"/>
+  <path d="M 632,689 A 214,214 0 1,1 632,335" fill="none" stroke="url(#brand)" stroke-width="76" stroke-linecap="round" filter="url(#glow)"/>
+  <polygon points="742,512  652,448  652,576" fill="url(#brand)" filter="url(#glow)"/>
+  <circle cx="512" cy="512" r="26" fill="url(#brand)" filter="url(#coreglow)"/>
+  <circle cx="512" cy="512" r="12" fill="#09090b"/>
 </svg>

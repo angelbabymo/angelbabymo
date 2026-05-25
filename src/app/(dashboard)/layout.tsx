@@ -16,7 +16,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <Topbar />
-          <main className="flex-1 p-4 md:p-8 overflow-auto pb-24 md:pb-8">
+          <main className="flex-1 p-4 md:p-8 overflow-auto md:pb-8" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))' }}>
             {children}
           </main>
         </div>

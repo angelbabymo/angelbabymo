@@ -1,17 +1,22 @@
 'use client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
+import { useBrand } from '@/hooks/useBrand';
 import { ScheduledPost } from '@/types';
 
 export function usePosts() {
+  const { data: brand, isLoading: brandLoading } = useBrand();
   const supabase = createClient();
 
   return useQuery<ScheduledPost[]>({
-    queryKey: ['posts'],
+    queryKey: ['posts', brand?.id],
+    enabled: !brandLoading,
     queryFn: async () => {
+      if (!brand?.id) return [];
       const { data, error } = await supabase
         .from('scheduled_posts')
         .select('*')
+        .eq('brand_id', brand.id)
         .order('scheduled_for', { ascending: true });
       if (error) throw error;
       return data ?? [];
@@ -20,6 +25,7 @@ export function usePosts() {
 }
 
 export function useAddPost() {
+  const { data: brand } = useBrand();
   const supabase = createClient();
   const queryClient = useQueryClient();
 
@@ -28,7 +34,7 @@ export function useAddPost() {
       const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from('scheduled_posts')
-        .insert({ ...post, user_id: user?.id })
+        .insert({ ...post, user_id: user?.id, brand_id: brand?.id ?? null })
         .select()
         .single();
       if (error) throw error;

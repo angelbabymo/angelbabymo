@@ -1,17 +1,22 @@
 'use client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
+import { useBrand } from '@/hooks/useBrand';
 import { VaultItem } from '@/types';
 
 export function useVault() {
+  const { data: brand, isLoading: brandLoading } = useBrand();
   const supabase = createClient();
 
   return useQuery<VaultItem[]>({
-    queryKey: ['vault'],
+    queryKey: ['vault', brand?.id],
+    enabled: !brandLoading,
     queryFn: async () => {
+      if (!brand?.id) return [];
       const { data, error } = await supabase
         .from('vault_items')
         .select('*')
+        .eq('brand_id', brand.id)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -20,6 +25,7 @@ export function useVault() {
 }
 
 export function useAddVaultItem() {
+  const { data: brand } = useBrand();
   const supabase = createClient();
   const queryClient = useQueryClient();
 
@@ -28,7 +34,7 @@ export function useAddVaultItem() {
       const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from('vault_items')
-        .insert({ ...item, user_id: user?.id })
+        .insert({ ...item, user_id: user?.id, brand_id: brand?.id ?? null })
         .select()
         .single();
       if (error) throw error;

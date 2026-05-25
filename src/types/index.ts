@@ -4,9 +4,18 @@ export type PostStatus = 'draft' | 'scheduled' | 'posted' | 'skipped';
 export type Priority = 'low' | 'normal' | 'high';
 export type Performance = 'viral' | 'good' | 'average' | 'low';
 
+export interface Folder {
+  id: string;
+  user_id: string;
+  name: string;
+  parent_id: string | null;
+  created_at: string;
+}
+
 export interface Clip {
   id: string;
   user_id: string;
+  folder_id: string | null;
   clip_name: string;
   category: Category;
   emotional_tags: string[];

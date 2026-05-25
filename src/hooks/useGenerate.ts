@@ -1,8 +1,10 @@
 'use client';
 import { useState } from 'react';
+import { useBrand } from '@/hooks/useBrand';
 import { GeneratedContent } from '@/types';
 
 export function useGenerate() {
+  const { data: brand } = useBrand();
   const [data, setData]       = useState<GeneratedContent | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
@@ -16,7 +18,7 @@ export function useGenerate() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description, category, clipName }),
+        body: JSON.stringify({ description, category, clipName, brandId: brand?.id ?? null }),
       });
       if (!res.ok) throw new Error('Failed');
       const result: GeneratedContent = await res.json();

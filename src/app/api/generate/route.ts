@@ -1,12 +1,28 @@
 import { anthropic, SYSTEM_PROMPT } from '@/lib/claude';
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { description, category, clipName } = await req.json();
+    const { description, category, clipName, brandId } = await req.json();
 
     if (!description?.trim()) {
       return NextResponse.json({ error: 'Description is required' }, { status: 400 });
+    }
+
+    let systemPrompt = SYSTEM_PROMPT;
+
+    if (brandId) {
+      const supabase = await createClient();
+      const { data: brand } = await supabase
+        .from('brands')
+        .select('profile')
+        .eq('id', brandId)
+        .single();
+      const aiPrompt = (brand?.profile as any)?.ai_prompt;
+      if (aiPrompt) {
+        systemPrompt = `${aiPrompt}\n\n---\nCONTENT FORMAT RULES (always follow):\n${SYSTEM_PROMPT.split('\n').slice(4).join('\n')}`;
+      }
     }
 
     const userPrompt = `Generate content for this TikTok clip:
@@ -26,7 +42,7 @@ Return ONLY a valid JSON object with this exact shape (no markdown, no explanati
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1500,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
     });
 
