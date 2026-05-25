@@ -9,11 +9,14 @@ interface Props { brandId: string }
 export function ScanParameters({ brandId }: Props) {
   const [niches, setNiches]       = useState<any[]>([]);
   const [expanded, setExpanded]   = useState(false);
+  const [mode, setMode]               = useState<'ai' | 'manual'>('ai');
   const [description, setDescription] = useState('');
   const [generating, setGenerating]   = useState(false);
   const [preview, setPreview]     = useState<{ name: string; keywords: string[] } | null>(null);
   const [error, setError]         = useState<string | null>(null);
   const [saving, setSaving]       = useState(false);
+  const [manualName, setManualName]   = useState('');
+  const [manualKeywords, setManualKeywords] = useState('');
   const supabase = createClient();
 
   const load = async () => {
@@ -112,99 +115,145 @@ export function ScanParameters({ brandId }: Props) {
             </div>
           )}
 
-          {/* AI niche builder */}
-          <div style={{
-            borderRadius: 14, padding: 14,
-            background: 'var(--surface-2)',
-            border: '1px solid var(--border)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-              <Sparkles size={13} style={{ color: 'var(--red)' }} />
-              <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>Add Niche with AI</p>
-              <span style={{ fontSize: 10, color: 'var(--text-3)', marginLeft: 'auto', fontFamily: 'monospace' }}>~$0.001 per niche</span>
+          {/* Add niche panel */}
+          <div style={{ borderRadius: 14, background: 'var(--surface-2)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+
+            {/* Mode tabs */}
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--border)' }}>
+              {([['ai', '✦ Generate with AI', '~$0.001'] , ['manual', '✎ Paste Your Own', 'Free']] as const).map(([m, label, badge]) => (
+                <button
+                  key={m}
+                  onClick={() => { setMode(m); setPreview(null); setError(null); }}
+                  style={{
+                    flex: 1, padding: '10px 8px',
+                    fontSize: 12, fontWeight: 700,
+                    background: mode === m ? 'var(--surface)' : 'transparent',
+                    color: mode === m ? 'var(--text)' : 'var(--text-3)',
+                    borderRight: m === 'ai' ? '1px solid var(--border)' : 'none',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  }}
+                >
+                  {label}
+                  <span style={{
+                    fontSize: 9, padding: '1px 5px', borderRadius: 4, fontFamily: 'monospace',
+                    background: mode === m ? (m === 'ai' ? 'rgba(255,60,110,0.12)' : 'rgba(34,197,94,0.12)') : 'var(--surface-3)',
+                    color: mode === m ? (m === 'ai' ? 'var(--red)' : '#22c55e') : 'var(--text-3)',
+                  }}>
+                    {badge}
+                  </span>
+                </button>
+              ))}
             </div>
 
-            <textarea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder="Describe what you sell and who buys it — e.g. &quot;Soft luxury feminine fashion and accessories for women 18-35 who love aesthetic, clean-girl style&quot;"
-              rows={3}
-              style={{
-                width: '100%', borderRadius: 10, padding: '10px 12px',
-                background: 'var(--surface-3)', border: '1px solid var(--border)',
-                color: 'var(--text)', fontSize: 13, resize: 'none', outline: 'none',
-                lineHeight: 1.5,
-              }}
-            />
-
-            {error && (
-              <p style={{ fontSize: 11, color: 'var(--red)', marginTop: 6 }}>{error}</p>
-            )}
-
-            {/* Preview */}
-            {preview && (
-              <div style={{ marginTop: 10, padding: 12, borderRadius: 10, background: 'var(--surface)', border: '1px solid rgba(255,60,110,0.25)' }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-                  "{preview.name}"
-                </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
-                  {preview.keywords.map(kw => (
-                    <span key={kw} style={{
-                      fontSize: 11, padding: '3px 9px', borderRadius: 6, fontWeight: 600,
-                      background: 'rgba(255,60,110,0.1)', color: 'var(--red)',
-                      border: '1px solid rgba(255,60,110,0.2)',
-                    }}>
-                      {kw}
-                    </span>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
+            <div style={{ padding: 14 }}>
+              {mode === 'ai' ? (
+                <>
+                  <p style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 8, lineHeight: 1.5 }}>
+                    Describe your niche — Claude generates optimized TikTok Shop search keywords.
+                  </p>
+                  <textarea
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    placeholder={'e.g. "Soft luxury feminine fashion and accessories for women 18-35 who love clean-girl aesthetic style"'}
+                    rows={3}
                     style={{
-                      flex: 1, padding: '8px 0', borderRadius: 9,
-                      background: 'var(--red)', color: '#fff',
-                      fontSize: 12, fontWeight: 700,
+                      width: '100%', borderRadius: 10, padding: '10px 12px',
+                      background: 'var(--surface-3)', border: '1px solid var(--border)',
+                      color: 'var(--text)', fontSize: 13, resize: 'none', outline: 'none', lineHeight: 1.5,
+                    }}
+                  />
+                  {error && <p style={{ fontSize: 11, color: 'var(--red)', marginTop: 6 }}>{error}</p>}
+
+                  {preview ? (
+                    <div style={{ marginTop: 10, padding: 12, borderRadius: 10, background: 'var(--surface)', border: '1px solid rgba(255,60,110,0.25)' }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>"{preview.name}"</p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
+                        {preview.keywords.map(kw => (
+                          <span key={kw} style={{ fontSize: 11, padding: '3px 9px', borderRadius: 6, fontWeight: 600, background: 'rgba(255,60,110,0.1)', color: 'var(--red)', border: '1px solid rgba(255,60,110,0.2)' }}>
+                            {kw}
+                          </span>
+                        ))}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '8px 0', borderRadius: 9, background: 'var(--red)', color: '#fff', fontSize: 12, fontWeight: 700, opacity: saving ? 0.6 : 1 }}>
+                          {saving ? 'Saving…' : 'Save Niche'}
+                        </button>
+                        <button onClick={() => { setPreview(null); setDescription(''); }} style={{ padding: '8px 12px', borderRadius: 9, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text-3)', fontSize: 12 }}>
+                          Discard
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleGenerate}
+                      disabled={generating || !description.trim()}
+                      style={{
+                        marginTop: 8, width: '100%', padding: '9px 0', borderRadius: 10,
+                        background: description.trim() ? 'var(--red)' : 'var(--surface-3)',
+                        color: description.trim() ? '#fff' : 'var(--text-3)',
+                        fontSize: 13, fontWeight: 700,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                      }}
+                    >
+                      {generating ? <><Loader2 size={13} className="animate-spin" /> Generating…</> : <><Sparkles size={13} /> Generate Keywords</>}
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 8, lineHeight: 1.5 }}>
+                    Paste keywords from Claude.ai or anywhere else. One keyword per line, or comma-separated.
+                  </p>
+                  <input
+                    value={manualName}
+                    onChange={e => setManualName(e.target.value)}
+                    placeholder="Niche name — e.g. Soft Luxury Fashion"
+                    style={{
+                      width: '100%', borderRadius: 10, padding: '9px 12px', marginBottom: 8,
+                      background: 'var(--surface-3)', border: '1px solid var(--border)',
+                      color: 'var(--text)', fontSize: 13, outline: 'none',
+                    }}
+                  />
+                  <textarea
+                    value={manualKeywords}
+                    onChange={e => setManualKeywords(e.target.value)}
+                    placeholder={'Paste keywords here — one per line or comma-separated:\nsoft luxury outfit\nfeminine fashion haul\naesthetic clothing\nquiet luxury fashion'}
+                    rows={4}
+                    style={{
+                      width: '100%', borderRadius: 10, padding: '10px 12px',
+                      background: 'var(--surface-3)', border: '1px solid var(--border)',
+                      color: 'var(--text)', fontSize: 13, resize: 'none', outline: 'none', lineHeight: 1.6,
+                    }}
+                  />
+                  <button
+                    onClick={async () => {
+                      const name = manualName.trim();
+                      const keywords = manualKeywords
+                        .split(/[\n,]+/)
+                        .map(k => k.trim().toLowerCase())
+                        .filter(Boolean);
+                      if (!name || !keywords.length) return;
+                      setSaving(true);
+                      await createNiche(brandId, name, keywords);
+                      setManualName('');
+                      setManualKeywords('');
+                      await load();
+                      setSaving(false);
+                    }}
+                    disabled={saving || !manualName.trim() || !manualKeywords.trim()}
+                    style={{
+                      marginTop: 8, width: '100%', padding: '9px 0', borderRadius: 10,
+                      background: manualName.trim() && manualKeywords.trim() ? 'var(--red)' : 'var(--surface-3)',
+                      color: manualName.trim() && manualKeywords.trim() ? '#fff' : 'var(--text-3)',
+                      fontSize: 13, fontWeight: 700,
                       opacity: saving ? 0.6 : 1,
                     }}
                   >
-                    {saving ? 'Saving…' : 'Save This Niche'}
+                    {saving ? 'Saving…' : 'Save Niche'}
                   </button>
-                  <button
-                    onClick={() => { setPreview(null); setDescription(''); }}
-                    style={{
-                      padding: '8px 12px', borderRadius: 9,
-                      background: 'var(--surface-2)', border: '1px solid var(--border)',
-                      color: 'var(--text-3)', fontSize: 12,
-                    }}
-                  >
-                    Discard
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {!preview && (
-              <button
-                onClick={handleGenerate}
-                disabled={generating || !description.trim()}
-                style={{
-                  marginTop: 8,
-                  width: '100%', padding: '9px 0', borderRadius: 10,
-                  background: description.trim() ? 'var(--red)' : 'var(--surface-3)',
-                  color: description.trim() ? '#fff' : 'var(--text-3)',
-                  fontSize: 13, fontWeight: 700,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                  transition: 'all 0.15s',
-                }}
-              >
-                {generating
-                  ? <><Loader2 size={13} className="animate-spin" /> Generating keywords…</>
-                  : <><Sparkles size={13} /> Generate Keywords</>
-                }
-              </button>
-            )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
