@@ -28,12 +28,13 @@ export function Topbar() {
       style={{
         borderBottom: '1px solid var(--border)',
         background: 'var(--surface)',
-        paddingTop: 'env(safe-area-inset-top)',
+        paddingTop: 'calc(env(safe-area-inset-top) + 10px)',
+        paddingBottom: 10,
         position: 'relative',
         zIndex: 50,
         overflow: 'visible',
       }}
-      className="h-14 px-4 md:px-8 flex items-center justify-between shrink-0"
+      className="px-4 md:px-8 flex items-center justify-between shrink-0"
     >
       {/* Mobile: brand switcher / Desktop: page title */}
       <div className="flex items-center gap-3">
