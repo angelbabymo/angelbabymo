@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { switchBrand } from '@/app/actions/brands';
-import { Check, Plus, ChevronDown, X } from 'lucide-react';
+import { Check, Plus, ChevronDown, X, Pencil } from 'lucide-react';
 
 function brandColor(name: string) {
   const palette = ['#ff3c6e','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#06b6d4','#f97316'];
@@ -23,6 +23,31 @@ function getCookieBrand() {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
+function IdentityTags({ profile }: { profile: any }) {
+  if (!profile) return null;
+  const tags: string[] = [];
+  if (profile.voice?.tone) tags.push(profile.voice.tone.split(' ')[0]);
+  if (profile.aesthetic?.vibe_words?.length) tags.push(...profile.aesthetic.vibe_words.slice(0, 2));
+  if (profile.audience?.identity) tags.push(profile.audience.identity.split(' ').slice(0, 2).join(' '));
+  const shown = tags.slice(0, 3);
+  if (!shown.length) return null;
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
+      {shown.map((t, i) => (
+        <span key={i} style={{
+          fontSize: 9.5, fontWeight: 600, letterSpacing: '0.04em',
+          padding: '2px 7px', borderRadius: 6,
+          background: 'var(--surface-3)',
+          color: 'var(--text-3)',
+          textTransform: 'capitalize',
+        }}>
+          {t}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function ProfileSwitcher() {
   const router = useRouter();
   const [brands, setBrands] = useState<any[]>([]);
@@ -39,7 +64,7 @@ export function ProfileSwitcher() {
       if (!user) return;
       const { data } = await supabase
         .from('brands')
-        .select('id, name, slug, description')
+        .select('id, name, slug, description, profile')
         .eq('owner_user_id', user.id)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
@@ -66,11 +91,16 @@ export function ProfileSwitcher() {
     setSwitching(null);
   };
 
+  const handleEdit = (e: React.MouseEvent, slug: string) => {
+    e.stopPropagation();
+    setOpen(false);
+    router.push(`/brands/${slug}`);
+  };
+
   if (!current) return null;
 
   const color = brandColor(current.name);
 
-  /* ── Topbar profile button ───────────────────────────────── */
   return (
     <>
       <button
@@ -86,7 +116,6 @@ export function ProfileSwitcher() {
           transition: 'opacity 0.15s',
         }}
       >
-        {/* Avatar */}
         <span style={{
           width: 32, height: 32,
           borderRadius: 10,
@@ -100,7 +129,6 @@ export function ProfileSwitcher() {
           {initials(current.name)}
         </span>
 
-        {/* Labels */}
         <div style={{ textAlign: 'left', minWidth: 0 }}>
           <p style={{
             fontSize: 13, fontWeight: 700, lineHeight: 1.2,
@@ -118,7 +146,6 @@ export function ProfileSwitcher() {
         <ChevronDown size={13} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
       </button>
 
-      {/* ── Bottom-sheet account switcher ─────────────────────── */}
       {mounted && open && createPortal(
         <>
           {/* Backdrop */}
@@ -133,7 +160,7 @@ export function ProfileSwitcher() {
             }}
           />
 
-          {/* Sheet — always anchored to bottom, zero coordinate math */}
+          {/* Sheet */}
           <div
             style={{
               position: 'fixed',
@@ -143,7 +170,7 @@ export function ProfileSwitcher() {
               borderRadius: '24px 24px 0 0',
               paddingBottom: 'env(safe-area-inset-bottom)',
               animation: 'slideUp 0.3s cubic-bezier(0.32,0.72,0,1) both',
-              maxHeight: '85vh',
+              maxHeight: '90vh',
               overflowY: 'auto',
             }}
           >
@@ -185,83 +212,123 @@ export function ProfileSwitcher() {
                 const bColor = brandColor(b.name);
                 const isLoading = switching === b.id;
                 return (
-                  <button
+                  <div
                     key={b.id}
-                    onClick={() => handleSwitch(b)}
-                    disabled={!!switching}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 14,
-                      padding: '14px 16px',
                       borderRadius: 18,
                       background: active ? `${bColor}14` : 'var(--surface-2)',
                       border: `2px solid ${active ? bColor : 'transparent'}`,
-                      textAlign: 'left',
-                      width: '100%',
-                      transition: 'opacity 0.15s',
-                      opacity: switching && !isLoading ? 0.5 : 1,
-                      position: 'relative',
+                      overflow: 'hidden',
                     }}
                   >
-                    {/* Profile avatar */}
-                    <span style={{
-                      width: 52, height: 52,
-                      borderRadius: 16,
-                      background: bColor,
-                      color: '#fff',
-                      fontSize: 18, fontWeight: 800,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      flexShrink: 0,
-                      boxShadow: active ? `0 6px 20px ${bColor}55` : `0 2px 8px ${bColor}30`,
-                    }}>
-                      {isLoading ? (
-                        <span style={{
-                          width: 20, height: 20, borderRadius: '50%',
-                          border: '2.5px solid rgba(255,255,255,0.3)',
-                          borderTopColor: '#fff',
-                          animation: 'spin 0.7s linear infinite',
-                          display: 'block',
-                        }} />
-                      ) : initials(b.name)}
-                    </span>
-
-                    {/* Info */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{
-                        fontSize: 16, fontWeight: 700, lineHeight: 1.25,
-                        color: active ? bColor : 'var(--text)',
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>
-                        {b.name}
-                      </p>
-                      <p style={{
-                        fontSize: 12, color: 'var(--text-3)', marginTop: 3,
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>
-                        {b.description || 'No description'}
-                      </p>
-                      {active && (
-                        <p style={{
-                          fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
-                          color: bColor, marginTop: 4, textTransform: 'uppercase',
-                        }}>
-                          ● Current Profile
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Active check */}
-                    {active && (
+                    {/* Main card row */}
+                    <button
+                      onClick={() => handleSwitch(b)}
+                      disabled={!!switching}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 14,
+                        padding: '14px 16px 10px',
+                        width: '100%',
+                        textAlign: 'left',
+                        transition: 'opacity 0.15s',
+                        opacity: switching && !isLoading ? 0.5 : 1,
+                      }}
+                    >
+                      {/* Avatar */}
                       <span style={{
-                        width: 26, height: 26, borderRadius: '50%',
+                        width: 52, height: 52,
+                        borderRadius: 16,
                         background: bColor,
+                        color: '#fff',
+                        fontSize: 18, fontWeight: 800,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         flexShrink: 0,
-                        boxShadow: `0 4px 12px ${bColor}55`,
+                        boxShadow: active ? `0 6px 20px ${bColor}55` : `0 2px 8px ${bColor}30`,
                       }}>
-                        <Check size={13} color="white" strokeWidth={3} />
+                        {isLoading ? (
+                          <span style={{
+                            width: 20, height: 20, borderRadius: '50%',
+                            border: '2.5px solid rgba(255,255,255,0.3)',
+                            borderTopColor: '#fff',
+                            animation: 'spin 0.7s linear infinite',
+                            display: 'block',
+                          }} />
+                        ) : initials(b.name)}
                       </span>
-                    )}
-                  </button>
+
+                      {/* Info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{
+                          fontSize: 16, fontWeight: 700, lineHeight: 1.25,
+                          color: active ? bColor : 'var(--text)',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                          {b.name}
+                        </p>
+                        {b.description && (
+                          <p style={{
+                            fontSize: 12, color: 'var(--text-3)', marginTop: 2,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>
+                            {b.description}
+                          </p>
+                        )}
+                        {active && (
+                          <p style={{
+                            fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+                            color: bColor, marginTop: 4, textTransform: 'uppercase',
+                          }}>
+                            ● Current Profile
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Active check */}
+                      {active && (
+                        <span style={{
+                          width: 26, height: 26, borderRadius: '50%',
+                          background: bColor,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0,
+                          boxShadow: `0 4px 12px ${bColor}55`,
+                        }}>
+                          <Check size={13} color="white" strokeWidth={3} />
+                        </span>
+                      )}
+                    </button>
+
+                    {/* Identity row */}
+                    <div style={{
+                      padding: '0 16px 12px',
+                      display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8,
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <IdentityTags profile={b.profile} />
+                        {!b.profile?.voice?.tone && !b.profile?.aesthetic?.vibe_words?.length && (
+                          <p style={{ fontSize: 11, color: 'var(--text-3)', fontStyle: 'italic' }}>
+                            No identity set — tap Edit to configure
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={(e) => handleEdit(e, b.slug)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 5,
+                          padding: '5px 10px',
+                          borderRadius: 8,
+                          background: active ? `${bColor}20` : 'var(--surface-3)',
+                          border: `1px solid ${active ? `${bColor}40` : 'var(--border)'}`,
+                          color: active ? bColor : 'var(--text-3)',
+                          fontSize: 11, fontWeight: 600,
+                          flexShrink: 0,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <Pencil size={11} />
+                        Edit Identity
+                      </button>
+                    </div>
+                  </div>
                 );
               })}
             </div>
