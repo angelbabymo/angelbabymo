@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useBrand } from '@/hooks/useBrand';
 import { GeneratedContent } from '@/types';
+import { loadRules, formatRulesForPrompt } from '@/components/generator/GenerationRules';
 
 export function useGenerate() {
   const { data: brand } = useBrand();
@@ -14,11 +15,14 @@ export function useGenerate() {
     setLoading(true);
     setError(null);
 
+    const rules = loadRules();
+    const globalRules = formatRulesForPrompt(rules);
+
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description, category, clipName, brandId: brand?.id ?? null }),
+        body: JSON.stringify({ description, category, clipName, brandId: brand?.id ?? null, globalRules }),
       });
       if (!res.ok) throw new Error('Failed');
       const result: GeneratedContent = await res.json();

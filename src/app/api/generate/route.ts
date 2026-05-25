@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { description, category, clipName, brandId } = await req.json();
+    const { description, category, clipName, brandId, globalRules } = await req.json();
 
     if (!description?.trim()) {
       return NextResponse.json({ error: 'Description is required' }, { status: 400 });
@@ -23,6 +23,10 @@ export async function POST(req: NextRequest) {
       if (aiPrompt) {
         systemPrompt = `${aiPrompt}\n\n---\nCONTENT FORMAT RULES (always follow):\n${SYSTEM_PROMPT.split('\n').slice(4).join('\n')}`;
       }
+    }
+
+    if (globalRules) {
+      systemPrompt = `${systemPrompt}\n\n---\n${globalRules}`;
     }
 
     const userPrompt = `Generate content for this TikTok clip:

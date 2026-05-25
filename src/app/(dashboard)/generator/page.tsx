@@ -1,17 +1,18 @@
 'use client';
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useGenerate } from '@/hooks/useGenerate';
+import { useVoiceInput } from '@/hooks/useVoiceInput';
+import { GenerationRules } from '@/components/generator/GenerationRules';
+import { loadRules } from '@/components/generator/GenerationRules';
 import { GeneratedContent } from '@/types';
-import { Zap } from 'lucide-react';
+import { Zap, Mic, MicOff, BookOpen, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CATEGORIES } from '@/lib/constants';
 import { Button } from '@/components/ui/Button';
-import { Textarea } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { HookList } from '@/components/generator/HookList';
 import { CaptionList } from '@/components/generator/CaptionList';
-import { AlertCircle } from 'lucide-react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -25,31 +26,79 @@ type FormData = z.infer<typeof schema>;
 
 export default function GeneratorPage() {
   const { generate, data, loading, error, reset } = useGenerate();
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { category: 'Lifestyle' },
+    defaultValues: { category: 'Lifestyle', description: '' },
   });
+
+  const description = watch('description');
+
+  const onTranscript = useCallback((text: string) => {
+    const current = textareaRef.current?.value ?? '';
+    const next = current ? `${current} ${text}` : text;
+    setValue('description', next, { shouldValidate: true });
+  }, [setValue]);
+
+  const { listening, supported, toggle: toggleMic } = useVoiceInput(onTranscript);
 
   const onSubmit = async (fd: FormData) => {
     await generate(fd.description, fd.category, fd.clipName);
   };
 
+  const rules = loadRules();
+  const activePillars = rules.pillars.length;
+  const hasCustomRules = !!rules.customRules.trim();
+  const rulesActive = activePillars > 0 || hasCustomRules;
+
   return (
     <div className="flex flex-col gap-6 animate-[fadeUp_0.3s_ease_both]">
 
-      {/* Input panel */}
-      <form onSubmit={handleSubmit(onSubmit)} className="card p-6 flex flex-col gap-4">
-        <div>
-          <h2 className="font-display tracking-widest text-lg" style={{ color: 'var(--text)' }}>
-            GENERATE COPY
-          </h2>
-          <p className="text-[12px] mt-1" style={{ color: 'var(--text-3)' }}>
-            Describe your clip — Claude generates 10 hooks, 5 captions, 3 CTAs, and emotional angles.
-          </p>
+      <form onSubmit={handleSubmit(onSubmit)} className="card p-5 flex flex-col gap-4">
+        {/* Header row */}
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display tracking-widest text-lg" style={{ color: 'var(--text)' }}>
+              GENERATE COPY
+            </h2>
+            <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-3)' }}>
+              10 hooks · 5 captions · 3 CTAs · emotional angles
+            </p>
+          </div>
+
+          {/* Rules button */}
+          <button
+            type="button"
+            onClick={() => setRulesOpen(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '6px 11px',
+              borderRadius: 10,
+              background: rulesActive ? 'rgba(255,60,110,0.1)' : 'var(--surface-2)',
+              border: `1.5px solid ${rulesActive ? 'rgba(255,60,110,0.35)' : 'var(--border)'}`,
+              color: rulesActive ? 'var(--red)' : 'var(--text-3)',
+              fontSize: 12, fontWeight: 600,
+              flexShrink: 0,
+            }}
+          >
+            <BookOpen size={13} />
+            Rules
+            {rulesActive && (
+              <span style={{
+                width: 16, height: 16, borderRadius: '50%',
+                background: 'var(--red)', color: '#fff',
+                fontSize: 9, fontWeight: 800,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {activePillars + (hasCustomRules ? 1 : 0)}
+              </span>
+            )}
+          </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <Input label="Clip Name (optional)" placeholder="e.g. Spring GRWM" {...register('clipName')} />
           <Select
             label="Category"
@@ -58,13 +107,74 @@ export default function GeneratorPage() {
           />
         </div>
 
-        <Textarea
-          label="Describe the clip *"
-          placeholder="Tell me what happens in the clip — the vibe, any affiliate product, who it's for, what emotion you want to trigger..."
-          rows={5}
-          error={errors.description?.message}
-          {...register('description')}
-        />
+        {/* Description with mic button */}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <label className="text-[12px] font-medium" style={{ color: 'var(--text-2)' }}>
+              Describe the clip *
+            </label>
+            {supported && (
+              <button
+                type="button"
+                onClick={toggleMic}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '4px 10px',
+                  borderRadius: 8,
+                  background: listening ? 'rgba(255,60,110,0.15)' : 'var(--surface-2)',
+                  border: `1.5px solid ${listening ? 'rgba(255,60,110,0.5)' : 'var(--border)'}`,
+                  color: listening ? 'var(--red)' : 'var(--text-3)',
+                  fontSize: 11, fontWeight: 600,
+                  transition: 'all 0.15s',
+                }}
+              >
+                {listening ? (
+                  <>
+                    <span style={{
+                      width: 6, height: 6, borderRadius: '50%',
+                      background: 'var(--red)',
+                      animation: 'pulse 1s ease infinite',
+                    }} />
+                    <MicOff size={12} />
+                    Stop
+                  </>
+                ) : (
+                  <>
+                    <Mic size={12} />
+                    Speak
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+          <textarea
+            {...register('description')}
+            ref={(el) => {
+              (register('description') as any).ref(el);
+              (textareaRef as any).current = el;
+            }}
+            placeholder={listening
+              ? 'Listening… speak now'
+              : 'Tell me what happens in the clip — the vibe, any affiliate product, who it\'s for, what emotion you want to trigger...'
+            }
+            rows={5}
+            style={{
+              width: '100%',
+              background: listening ? 'rgba(255,60,110,0.06)' : 'var(--surface-2)',
+              border: `1px solid ${listening ? 'rgba(255,60,110,0.4)' : 'var(--border)'}`,
+              borderRadius: 8,
+              padding: '8px 12px',
+              fontSize: 13,
+              color: 'var(--text)',
+              resize: 'none',
+              outline: 'none',
+              transition: 'border-color 0.15s, background 0.15s',
+            }}
+          />
+          {errors.description && (
+            <span className="text-[11px]" style={{ color: 'var(--red)' }}>{errors.description.message}</span>
+          )}
+        </div>
 
         {error && (
           <div
@@ -120,6 +230,8 @@ export default function GeneratorPage() {
           </p>
         </div>
       )}
+
+      <GenerationRules open={rulesOpen} onClose={() => setRulesOpen(false)} />
     </div>
   );
 }
