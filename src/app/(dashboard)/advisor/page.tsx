@@ -42,15 +42,7 @@ export default function AdvisorPage() {
     getOrCreateConversation();
   }, [brand?.id]);
 
-  if (brandLoading) {
-    return (
-      <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-3)' }}>
-        <span className="animate-pulse text-sm">Loading…</span>
-      </div>
-    );
-  }
-
-  if (!brand) {
+  if (!brandLoading && !brand) {
     return (
       <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-3)' }}>
         <p className="text-sm">Select a brand from the sidebar to get started.</p>
@@ -61,7 +53,7 @@ export default function AdvisorPage() {
   if (!conversationId) {
     return (
       <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-3)' }}>
-        <span className="animate-pulse text-sm">Starting conversation…</span>
+        <span className="animate-pulse text-sm">Loading…</span>
       </div>
     );
   }
