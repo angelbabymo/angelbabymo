@@ -8,35 +8,44 @@ import AdvisorChat from './_components/AdvisorChat';
 export default function AdvisorPage() {
   const { data: brand, isLoading: brandLoading } = useBrand();
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
     if (!brand?.id) return;
 
     async function getOrCreateConversation() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { setError('Not authenticated'); return; }
 
-      const { data: existing } = await supabase
-        .from('advisor_conversations')
-        .select('id')
-        .eq('brand_id', brand!.id)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .single();
+        // use maybeSingle() so no error is thrown when 0 rows exist
+        const { data: existing, error: fetchErr } = await supabase
+          .from('advisor_conversations')
+          .select('id')
+          .eq('brand_id', brand!.id)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      if (existing) {
-        setConversationId(existing.id);
-        return;
+        if (fetchErr) { setError(fetchErr.message); return; }
+
+        if (existing) {
+          setConversationId(existing.id);
+          return;
+        }
+
+        const { data: created, error: insertErr } = await supabase
+          .from('advisor_conversations')
+          .insert({ brand_id: brand!.id, user_id: user.id, title: 'Session 1' })
+          .select('id')
+          .single();
+
+        if (insertErr) { setError(insertErr.message); return; }
+        if (created) setConversationId(created.id);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Unknown error');
       }
-
-      const { data: created } = await supabase
-        .from('advisor_conversations')
-        .insert({ brand_id: brand!.id, user_id: user.id, title: 'Session 1' })
-        .select('id')
-        .single();
-
-      if (created) setConversationId(created.id);
     }
 
     getOrCreateConversation();
@@ -46,6 +55,14 @@ export default function AdvisorPage() {
     return (
       <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-3)' }}>
         <p className="text-sm">Select a brand from the sidebar to get started.</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full" style={{ color: 'var(--red)' }}>
+        <p className="text-sm font-mono">{error}</p>
       </div>
     );
   }
