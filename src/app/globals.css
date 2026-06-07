@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
 
 /* ─── Design Tokens ─────────────────────────────────────────── */
 :root {
@@ -33,7 +32,7 @@
 @theme inline {
   --font-sans:    var(--font-geist-sans), -apple-system, sans-serif;
   --font-mono:    var(--font-geist-mono), monospace;
-  --font-display: 'Bebas Neue', sans-serif;
+  --font-display: var(--font-bebas-neue), sans-serif;
 
   --color-red:    var(--red);
   --color-cyan:   var(--cyan);
@@ -83,11 +82,11 @@ body {
 }
 
 /* ─── Typography ────────────────────────────────────────────── */
-h1, h2, h3 { font-family: 'Bebas Neue', sans-serif; }
+h1, h2, h3 { font-family: var(--font-bebas-neue), sans-serif; }
 code, pre   { font-family: var(--font-geist-mono), monospace; }
 
 /* ─── Utility Classes ───────────────────────────────────────── */
-.font-display { font-family: 'Bebas Neue', sans-serif; }
+.font-display { font-family: var(--font-bebas-neue), sans-serif; }
 .font-mono    { font-family: var(--font-geist-mono), monospace; }
 
 .card {

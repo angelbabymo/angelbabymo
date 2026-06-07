@@ -1,3 +1,5 @@
+export const CLAUDE_ADVISOR_MODEL = process.env.CLAUDE_ADVISOR_MODEL ?? 'claude-sonnet-4-6';
+
 export const CATEGORIES = ['Lifestyle', 'Fashion', 'Affiliate', 'Wellness', 'GRWM', 'Tutorial', 'Other'] as const;
 
 export const VAULT_TYPES = [

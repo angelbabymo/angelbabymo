@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist, Geist_Mono, Bebas_Neue } from 'next/font/google';
 import './globals.css';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
+const bebasNeue = Bebas_Neue({ variable: '--font-bebas-neue', weight: '400', subsets: ['latin'] });
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -53,7 +54,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full`} suppressHydrationWarning>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${bebasNeue.variable} h-full`} suppressHydrationWarning>
       <head>
         {/* iOS requires this specific tag — Next.js only outputs mobile-web-app-capable */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
