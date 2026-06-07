@@ -71,7 +71,7 @@ export default function AdvisorPage() {
           DV
         </div>
         <div>
-          <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Dr. Victor Viral</p>
+          <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Dr. Duffey</p>
           <p className="text-xs" style={{ color: 'var(--text-3)' }}>Your AI Content Strategist</p>
         </div>
       </div>

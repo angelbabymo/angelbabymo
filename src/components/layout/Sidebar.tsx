@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { href: '/intel',       icon: TrendingUp,   label: 'Product Intel' },
   { href: '/database',    icon: Database,     label: 'Content DB' },
   { href: '/generator',   icon: Zap,          label: 'AI Generator' },
-  { href: '/advisor',     icon: BrainCircuit, label: 'Dr. Victor' },
+  { href: '/advisor',     icon: BrainCircuit, label: 'Dr. Duffey' },
   { href: '/ai',          icon: Activity,     label: 'AI Activity' },
   { href: '/performance', icon: BarChart2,    label: 'Performance' },
   { href: '/calendar',    icon: Calendar,     label: 'Calendar' },

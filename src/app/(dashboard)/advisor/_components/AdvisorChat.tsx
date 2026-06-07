@@ -132,7 +132,7 @@ export default function AdvisorChat({
         )}
         {streaming && !streamBuffer && (
           <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-3)' }}>
-            <span className="animate-pulse">Dr. Victor is analyzing…</span>
+            <span className="animate-pulse">Dr. Duffey is analyzing…</span>
           </div>
         )}
         <div ref={bottomRef} />
@@ -145,7 +145,7 @@ export default function AdvisorChat({
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-            placeholder="Ask Dr. Victor anything, or paste a video URL to analyze…"
+            placeholder="Ask Dr. Duffey anything, or paste a video URL to analyze…"
             className="flex-1 rounded-xl px-4 py-3 text-sm focus:outline-none"
             style={{
               background: 'var(--surface-2)',
