@@ -75,7 +75,7 @@ export default function AdvisorPage() {
           <p className="text-xs" style={{ color: 'var(--text-3)' }}>Your AI Content Strategist</p>
         </div>
       </div>
-      <AdvisorChat conversationId={conversationId} brandId={brand.id} />
+      <AdvisorChat conversationId={conversationId} brandId={brand!.id} />
     </div>
   );
 }
