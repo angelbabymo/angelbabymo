@@ -14,7 +14,7 @@ interface Message {
   analysis_json?: Record<string, unknown>;
 }
 
-const URL_REGEX = /^(https?:\/\/)(www\.)?(tiktok\.com|youtube\.com|youtu\.be|instagram\.com)\/.+/i;
+const URL_REGEX = /^https?:\/\/([a-z0-9-]+\.)?(tiktok\.com|youtube\.com|youtu\.be|instagram\.com)\/.+/i;
 
 export default function AdvisorChat({
   conversationId,
@@ -56,12 +56,18 @@ export default function AdvisorChat({
     if (isVideoUrl(text)) {
       setStreaming(true);
       try {
-        await fetch('/api/advisor/analyze-video', {
+        const res = await fetch('/api/advisor/analyze-video', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ conversationId, videoUrl: text, brandId }),
         });
+        if (!res.ok) {
+          const { error } = await res.json().catch(() => ({ error: 'Analysis failed' }));
+          console.error('Video analysis error:', error);
+        }
         queryClient.invalidateQueries({ queryKey: ['advisor-messages', conversationId] });
+      } catch (e) {
+        console.error('Video analysis fetch failed:', e);
       } finally {
         setStreaming(false);
       }

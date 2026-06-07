@@ -25,11 +25,8 @@ export async function POST(req: NextRequest) {
     video_url: videoUrl,
   });
 
+  // Try full pipeline (yt-dlp + ffmpeg). Falls back to URL-only if unavailable on serverless.
   const pipeline = await processVideoUrl(videoUrl);
-
-  if (pipeline.error) {
-    return NextResponse.json({ error: pipeline.error }, { status: 422 });
-  }
 
   const { data: brand } = await supabase
     .from('brands')
@@ -43,7 +40,7 @@ export async function POST(req: NextRequest) {
 
   const systemPrompt = buildAdvisorSystemPrompt(brandContext);
 
-  const frameContent: Anthropic.ImageBlockParam[] = pipeline.frames.map(frame => ({
+  const frameContent: Anthropic.ImageBlockParam[] = (pipeline.frames ?? []).map(frame => ({
     type: 'image',
     source: {
       type: 'base64',
@@ -52,16 +49,19 @@ export async function POST(req: NextRequest) {
     },
   }));
 
+  const analysisNote = pipeline.error
+    ? `Note: Video download unavailable in this environment — analyzing from URL and metadata only.`
+    : `Duration: ${Math.round(pipeline.duration)}s\nTranscript: ${pipeline.transcript}`;
+
   const userContent: Anthropic.ContentBlockParam[] = [
     ...frameContent,
     {
       type: 'text',
       text: `Video URL: ${videoUrl}
 Platform: ${pipeline.platform}
-Duration: ${Math.round(pipeline.duration)}s
-Transcript: ${pipeline.transcript}
+${analysisNote}
 
-Analyze this video using your full framework. Follow the exact output structure (Hook, Retention Mechanics, Audience, Emotional Arc, CTA, On-Screen Text, Verdict, Steal This).`,
+Analyze this video using your full framework. Follow the exact output structure (Hook, Retention Mechanics, Audience, Emotional Arc, CTA, On-Screen Text, Verdict, Steal This). If you cannot see frames or transcript, do your best analysis based on the URL, platform context, and any patterns you can infer.`,
     },
   ];
 
