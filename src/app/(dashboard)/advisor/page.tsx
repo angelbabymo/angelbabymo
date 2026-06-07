@@ -12,14 +12,13 @@ export default function AdvisorPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    if (!brand?.id) return;
+    if (brandLoading || !brand?.id) return;
 
     async function getOrCreateConversation() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { setError('Not authenticated'); return; }
 
-        // use maybeSingle() so no error is thrown when 0 rows exist
         const { data: existing, error: fetchErr } = await supabase
           .from('advisor_conversations')
           .select('id')
@@ -30,10 +29,7 @@ export default function AdvisorPage() {
 
         if (fetchErr) { setError(fetchErr.message); return; }
 
-        if (existing) {
-          setConversationId(existing.id);
-          return;
-        }
+        if (existing) { setConversationId(existing.id); return; }
 
         const { data: created, error: insertErr } = await supabase
           .from('advisor_conversations')
@@ -49,40 +45,27 @@ export default function AdvisorPage() {
     }
 
     getOrCreateConversation();
-  }, [brand?.id]);
+  }, [brand?.id, brandLoading]);
 
-  if (!brandLoading && !brand) {
-    return (
-      <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-3)' }}>
-        <p className="text-sm">Select a brand from the sidebar to get started.</p>
-      </div>
-    );
+  function renderBody() {
+    if (brandLoading) return <p className="text-sm animate-pulse" style={{ color: 'var(--text-3)' }}>Loading brand…</p>;
+    if (!brand) return <p className="text-sm" style={{ color: 'var(--text-3)' }}>Select a brand from the sidebar to get started.</p>;
+    if (error) return <p className="text-sm font-mono" style={{ color: 'var(--red)' }}>{error}</p>;
+    if (!conversationId) return <p className="text-sm animate-pulse" style={{ color: 'var(--text-3)' }}>Starting conversation…</p>;
+    return <AdvisorChat conversationId={conversationId} brandId={brand.id} />;
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full" style={{ color: 'var(--red)' }}>
-        <p className="text-sm font-mono">{error}</p>
-      </div>
-    );
-  }
-
-  if (!conversationId) {
-    return (
-      <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-3)' }}>
-        <span className="animate-pulse text-sm">Loading…</span>
-      </div>
-    );
-  }
+  const body = renderBody();
+  const isChat = !!conversationId && !!brand && !error;
 
   return (
     <div className="flex flex-col h-full -m-4 md:-m-8" style={{ background: 'var(--bg)' }}>
       <div
-        className="flex items-center gap-3 px-6 py-4"
+        className="flex items-center gap-3 px-6 py-4 shrink-0"
         style={{ borderBottom: '1px solid var(--border)' }}
       >
         <div
-          className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white"
+          className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
           style={{ background: 'var(--surface-2)' }}
         >
           DV
@@ -92,7 +75,9 @@ export default function AdvisorPage() {
           <p className="text-xs" style={{ color: 'var(--text-3)' }}>Your AI Content Strategist</p>
         </div>
       </div>
-      <AdvisorChat conversationId={conversationId} brandId={brand!.id} />
+      {isChat ? body : (
+        <div className="flex-1 flex items-center justify-center">{body}</div>
+      )}
     </div>
   );
 }
