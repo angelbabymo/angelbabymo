@@ -14,6 +14,9 @@ export default function AdvisorPage() {
     if (!brand?.id) return;
 
     async function getOrCreateConversation() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data: existing } = await supabase
         .from('advisor_conversations')
         .select('id')
@@ -29,7 +32,7 @@ export default function AdvisorPage() {
 
       const { data: created } = await supabase
         .from('advisor_conversations')
-        .insert({ brand_id: brand!.id, title: 'Session 1' })
+        .insert({ brand_id: brand!.id, user_id: user.id, title: 'Session 1' })
         .select('id')
         .single();
 
@@ -39,10 +42,18 @@ export default function AdvisorPage() {
     getOrCreateConversation();
   }, [brand?.id]);
 
-  if (brandLoading || !brand) {
+  if (brandLoading) {
     return (
       <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-3)' }}>
-        <span className="animate-pulse text-sm">Loading brand…</span>
+        <span className="animate-pulse text-sm">Loading…</span>
+      </div>
+    );
+  }
+
+  if (!brand) {
+    return (
+      <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-3)' }}>
+        <p className="text-sm">Select a brand from the sidebar to get started.</p>
       </div>
     );
   }
